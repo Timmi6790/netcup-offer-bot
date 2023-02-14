@@ -15,7 +15,7 @@ impl Config {
     fn get_env(name: &str) -> crate::Result<String> {
         env::var(name).map_err(|e| match e {
             env::VarError::NotPresent => {
-                Error::ConfigVar(format!("Missing environment variable {}", name))
+                Error::ConfigVar(format!("Missing environment variable {name}"))
             }
             e => Error::ConfigVar(e.to_string()),
         })
