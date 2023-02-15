@@ -1,0 +1,23 @@
+image:
+  repository: timmi6790/netcup-offer-bot
+  tag: master
+  pullPolicy: IfNotPresent
+
+env:
+  # Optional sentry url
+  sentryDns: ""
+  # Discord webhook url
+  webHook: ""
+  # Check interval in seconds
+  checkInterval: "180"
+
+persistence:
+  data:
+    accessMode: ReadWriteOnce
+    size: 10Mi
+
+resources:
+  limits:
+    memory: 10Mi
+  requests:
+    memory: 5Mi

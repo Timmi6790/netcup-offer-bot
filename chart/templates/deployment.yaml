@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels: 
+{{ include "common.labels" . | indent 4 }}
+  name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+{{ include "common.labels" . | indent 8 }}
+  template:
+    metadata:
+      labels: 
+{{ include "common.labels" . | indent 12 }}
+    spec:
+      containers:
+          - name: {{ .Chart.Name }}
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            imagePullPolicy: {{ .Values.pullPolicy }}
+            resources:
+            {{ if .Values.resources.requests }}  
+              requests:
+              {{ if .Values.resources.requests.cpu }}
+                cpu: {{ .Values.resources.requests.cpu | quote }}
+              {{ end }}
+              {{ if .Values.resources.requests.memory }}
+                memory: {{ .Values.resources.requests.memory | quote }}
+              {{ end }}
+            {{ end }}
+            {{ if .Values.resources.limits }}  
+              limits:
+              {{ if .Values.resources.limits.cpu }}
+                cpu: {{ .Values.resources.limits.cpu | quote }}
+              {{ end }}
+              {{ if .Values.resources.limits.memory }}
+                memory: {{ .Values.resources.limits.memory | quote }}
+              {{ end }}
+            {{ end }}
+            env:
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  key: sentryDns
+                  name: {{ .Release.Name }}-secrets
+            - name: WEB_HOOK
+              valueFrom:
+                secretKeyRef:
+                  key: webHook
+                  name: {{ .Release.Name }}-secrets
+            - name: CHECK_INTERVAL
+              value: {{ required "checkInterval is required" .Values.env.checkInterval | quote }}
+            volumeMounts:
+              - mountPath: /app/data
+                name: {{ .Release.Name }}-claim
+      volumes:
+        - name: {{ .Release.Name }}-claim
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-claim
