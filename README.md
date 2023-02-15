@@ -9,7 +9,14 @@
   </p>
 </p>
 
-![Docker Image Version (latest semver)](https://img.shields.io/docker/v/timmi6790/netcup-offer-bot)![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Timmi6790/netcup-offer-bot/clippy.yml) ![Issues](https://img.shields.io/github/issues/Timmi6790/netcup-offer-bot) ![License](https://img.shields.io/github/license/Timmi6790/netcup-offer-bot)
+<div align="center">
+
+![Docker Image Version (latest semver)](https://img.shields.io/docker/v/timmi6790/netcup-offer-bot)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Timmi6790/netcup-offer-bot/clippy.yml)
+![Issues](https://img.shields.io/github/issues/Timmi6790/netcup-offer-bot)
+![License](https://img.shields.io/github/license/Timmi6790/netcup-offer-bot)
+
+</div>
 
 ## About The Project
 
@@ -46,6 +53,30 @@ resources:
   requests:
     memory: 5Mi
 ```
+
+### Installation - Docker
+
+- [Docker Image](https://hub.docker.com/repository/docker/timmi6790/netcup-offer-bot)
+
+#### Quick start
+
+```shell
+  docker run \
+    --name netcup-offer-bot \
+    -e WEB_HOOK="https://discord.com/api/webhooks/..." \
+    -e CHECK_INTERVAL="180" \
+    -v netcup-offer-bot-data:/app/data \
+    -d \
+    timmi6790/netcup-offer-bot:latest
+  ```
+
+#### Environment variables
+
+| Environment    	 | Required 	  | Description                         	 |
+|------------------|-------------|---------------------------------------|
+| SENTRY_DSN     	 | 	           | Sentry dns                          	 |
+| WEB_HOOK       	 | X         	 | Discord webhook                     	 |
+| CHECK_INTERVAL 	 | X         	 | RSS feed check interval in seconds 	  |
 
 ## License
 
