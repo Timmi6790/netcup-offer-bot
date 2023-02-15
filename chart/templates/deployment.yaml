@@ -1,43 +1,50 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels: 
+  labels:
 {{ include "common.labels" . | indent 4 }}
   name: {{ .Release.Name }}
 spec:
   replicas: 1
   selector:
-    matchLabels: 
+    matchLabels:
 {{ include "common.labels" . | indent 8 }}
   template:
     metadata:
-      labels: 
+      labels:
 {{ include "common.labels" . | indent 12 }}
     spec:
       containers:
-          - name: {{ .Chart.Name }}
-            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-            imagePullPolicy: {{ .Values.pullPolicy }}
-            resources:
-            {{ if .Values.resources.requests }}  
-              requests:
-              {{ if .Values.resources.requests.cpu }}
-                cpu: {{ .Values.resources.requests.cpu | quote }}
-              {{ end }}
-              {{ if .Values.resources.requests.memory }}
-                memory: {{ .Values.resources.requests.memory | quote }}
-              {{ end }}
-            {{ end }}
-            {{ if .Values.resources.limits }}  
-              limits:
-              {{ if .Values.resources.limits.cpu }}
-                cpu: {{ .Values.resources.limits.cpu | quote }}
-              {{ end }}
-              {{ if .Values.resources.limits.memory }}
-                memory: {{ .Values.resources.limits.memory | quote }}
-              {{ end }}
-            {{ end }}
-            env:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.metrics.enabled }}
+          {{- with .Values.metrics.port }}
+          ports:
+            - name: metrics
+              containerPort: {{ . }}
+          {{- end}}
+          {{- end}}
+          resources:
+            {{- with .Values.resources.requests }}
+            requests:
+              {{- with .cpu}}
+              cpu: {{ . | quote }}
+              {{- end }}
+              {{- with .memory}}
+              memory: {{ . | quote }}
+              {{- end }}
+            {{- end }}
+            {{- with .Values.resources.limits }}
+            limits:
+              {{- with .cpu}}
+              cpu: {{ . | quote }}
+                {{- end }}
+                {{- with .memory}}
+              memory: {{ . | quote }}
+                {{- end }}
+            {{- end }}
+          env:
             - name: SENTRY_DSN
               valueFrom:
                 secretKeyRef:
@@ -50,9 +57,17 @@ spec:
                   name: {{ .Release.Name }}-secrets
             - name: CHECK_INTERVAL
               value: {{ required "checkInterval is required" .Values.env.checkInterval | quote }}
-            volumeMounts:
-              - mountPath: /app/data
-                name: {{ .Release.Name }}-claim
+            {{- with .Values.metrics.port}}
+            - name: METRIC_PORT
+              value: {{ . | quote }}
+            {{- end}}
+            {{- with .Values.metrics.ip}}
+            - name: METRIC_IP
+              value: {{ . | quote }}
+            {{- end}}
+          volumeMounts:
+            - mountPath: /app/data
+              name: {{ .Release.Name }}-claim
       volumes:
         - name: {{ .Release.Name }}-claim
           persistentVolumeClaim:

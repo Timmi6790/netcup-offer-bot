@@ -21,6 +21,8 @@ pub enum Error {
     IoError(String),
     #[error("Serde: {0}")]
     Serde(String),
+    #[error("Prometheus: {0}")]
+    Prometheus(String),
     #[error("Custom: {0}")]
     Custom(String),
 }
@@ -82,6 +84,18 @@ impl From<std::io::Error> for Error {
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
         Self::Serde(err.to_string())
+    }
+}
+
+impl From<prometheus::Error> for Error {
+    fn from(err: prometheus::Error) -> Self {
+        Self::Prometheus(err.to_string())
+    }
+}
+
+impl From<prometheus_exporter::Error> for Error {
+    fn from(err: prometheus_exporter::Error) -> Self {
+        Self::Prometheus(err.to_string())
     }
 }
 

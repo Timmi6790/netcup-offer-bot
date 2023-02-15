@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, FixedOffset, Utc};
 use chrono::serde::ts_seconds_option;
+use chrono::{DateTime, FixedOffset, Utc};
 use log::{debug, error, info, trace};
 use rss::Item;
 use serde::{Deserialize, Serialize};
@@ -42,9 +42,7 @@ impl FeedStates {
     }
 
     pub fn get_feed_or_create(&mut self, feed: &Feed) -> &mut FeedState {
-        self.feeds
-            .entry(*feed)
-            .or_insert_with(FeedState::default)
+        self.feeds.entry(*feed).or_insert_with(FeedState::default)
     }
 
     pub fn get_new_feed(&mut self, feed: &Feed, items: Vec<Item>) -> Vec<Item> {

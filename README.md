@@ -40,12 +40,19 @@ env:
   # Discord webhook url
   webHook: ""
   # Check interval in seconds
-  checkInterval: "180"
+  checkInterval: 180
 
 persistence:
   data:
     accessMode: ReadWriteOnce
     size: 10Mi
+
+metrics:
+  enabled: false
+  port: 9184
+  serviceMonitor:
+    interval: 1m
+    scrapeTimeout: 30s
 
 resources:
   limits:
@@ -72,11 +79,13 @@ resources:
 
 #### Environment variables
 
-| Environment    	 | Required 	  | Description                         	 |
-|------------------|-------------|---------------------------------------|
-| SENTRY_DSN     	 | 	           | Sentry dns                          	 |
-| WEB_HOOK       	 | X         	 | Discord webhook                     	 |
-| CHECK_INTERVAL 	 | X         	 | RSS feed check interval in seconds 	  |
+| Environment    	  | Required 	  | Description                         	                                 |
+|-------------------|-------------|-----------------------------------------------------------------------|
+| SENTRY_DSN     	  | 	           | Sentry dns                          	                                 |
+| WEB_HOOK       	  | X         	 | Discord webhook                     	                                 |
+| CHECK_INTERVAL 	  | X         	 | RSS feed check interval in seconds 	                                  |
+| METRIC_IP       	 | 	           | Prometheus exporter ip [Default: 0.0.0.0]                           	 |
+| METRIC_PORT     	 | 	           | Prometheus exporter port [Default: 9184]                            	 |
 
 ## License
 

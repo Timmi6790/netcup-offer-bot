@@ -1,11 +1,12 @@
 use std::env;
+use std::net::SocketAddr;
 
 use log::{error, info, trace};
 use sentry::ClientInitGuard;
 use strum::IntoEnumIterator;
 use tokio::time;
-use tokio_stream::wrappers::IntervalStream;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::IntervalStream;
 
 use crate::config::Config;
 use crate::discord_webhook::DiscordWebhook;
@@ -18,6 +19,7 @@ mod discord_webhook;
 mod error;
 mod feed;
 mod feed_state;
+mod metrics;
 
 const ENV_SENTRY_DSN: &str = "SENTRY_DSN";
 
@@ -34,8 +36,11 @@ async fn main() -> Result<()> {
 
     setup_logging()?;
 
-    info!("Starting feed bot");
     let config = Config::from_env()?;
+
+    setup_metrics(&config.metric_socket)?;
+
+    info!("Starting feed bot");
     run(config).await
 }
 
@@ -52,7 +57,18 @@ async fn run(config: Config) -> Result<()> {
 
             match feed.fetch().await {
                 Ok(feed_result) => {
-                    for item in states.get_new_feed(&feed, feed_result.items) {
+                    // Filter out already sent items
+                    let items = states.get_new_feed(&feed, feed_result.items);
+                    if items.is_empty() {
+                        continue;
+                    }
+
+                    // Increase metrics
+                    let counter = metrics::FEED_COUNTER.with_label_values(&[feed.name()]);
+                    counter.inc_by(items.len() as u64);
+
+                    // Send feed to discord
+                    for item in items {
                         if let Err(e) = hook.send_discord_message(&feed, item).await {
                             error!("Error sending message for feed {}: {}", feed.name(), e);
                         }
@@ -105,5 +121,10 @@ fn setup_logging() -> Result<()> {
         .chain(std::io::stdout())
         .apply()?;
 
+    Ok(())
+}
+
+fn setup_metrics(socket: &SocketAddr) -> Result<()> {
+    prometheus_exporter::start(*socket)?;
     Ok(())
 }
