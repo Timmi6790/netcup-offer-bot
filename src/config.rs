@@ -33,7 +33,8 @@ impl Config {
         let check_interval = Config::get_env(ENV_CHECK_INTERVAL)?.parse::<u64>()?;
         let check_interval = Duration::from_secs(check_interval);
 
-        let metric_ip = Config::get_env(ENV_METRIC_IP).unwrap_or_else(|_| DEFAULT_METRIC_IP.to_string());
+        let metric_ip =
+            Config::get_env(ENV_METRIC_IP).unwrap_or_else(|_| DEFAULT_METRIC_IP.to_string());
         let metric_port = Config::get_env(ENV_METRIC_PORT)
             .unwrap_or_else(|_| DEFAULT_METRIC_PORT.to_string())
             .parse::<u16>()?;
