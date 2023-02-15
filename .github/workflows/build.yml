@@ -84,13 +84,24 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          submodules: true
 
-      - name: Install Rust
-        run: rustup component add clippy
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
 
       - name: Annotate commit with clippy warnings
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features
+
