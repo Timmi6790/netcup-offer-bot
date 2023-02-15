@@ -55,3 +55,118 @@ impl Config {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CORRECT_WEB_HOOK: &str = "https://discord.com/api/webhooks/";
+    const CORRECT_CHECK_INTERVAL: &str = "42";
+    const CORRECT_METRIC_IP: &str = "127.0.0.1";
+    const CORRECT_METRIC_PORT: &str = "9184";
+
+    #[test]
+    fn test_from_env_missing_env() {
+        let result = Config::from_env();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_from_env_minimal() {
+        temp_env::with_vars(
+            vec![
+                (ENV_WEB_HOOK, Some(CORRECT_WEB_HOOK)),
+                (ENV_CHECK_INTERVAL, Some(CORRECT_CHECK_INTERVAL)),
+            ],
+            || {
+                let result = Config::from_env();
+                assert!(result.is_ok());
+
+                let config = result.unwrap();
+                assert_eq!(config.discord_webhook_url, CORRECT_WEB_HOOK);
+                assert_eq!(config.check_interval, Duration::from_secs(CORRECT_CHECK_INTERVAL.parse().unwrap()));
+            },
+        );
+    }
+
+    #[test]
+    fn test_from_env_full() {
+        temp_env::with_vars(
+            vec![
+                (ENV_WEB_HOOK, Some(CORRECT_WEB_HOOK)),
+                (ENV_CHECK_INTERVAL, Some(CORRECT_CHECK_INTERVAL)),
+                (ENV_METRIC_IP, Some(CORRECT_METRIC_IP)),
+                (ENV_METRIC_PORT, Some(CORRECT_METRIC_PORT)),
+            ],
+            || {
+                let result = Config::from_env();
+                assert!(result.is_ok());
+
+                let config = result.unwrap();
+                assert_eq!(config.discord_webhook_url, CORRECT_WEB_HOOK);
+                assert_eq!(config.check_interval, Duration::from_secs(CORRECT_CHECK_INTERVAL.parse().unwrap()));
+                assert_eq!(config.metric_socket, SocketAddr::new(CORRECT_METRIC_IP.parse().unwrap(), CORRECT_METRIC_PORT.parse().unwrap()));
+            },
+        );
+    }
+
+    #[test]
+    fn test_from_env_invalid_check_interval() {
+        temp_env::with_vars(
+            vec![
+                (ENV_WEB_HOOK, Some(CORRECT_WEB_HOOK)),
+                (ENV_CHECK_INTERVAL, Some("d")),
+            ],
+            || {
+                let result = Config::from_env();
+                assert!(result.is_err());
+            },
+        );
+    }
+
+    #[test]
+    fn test_from_env_invalid_metric_ip() {
+        temp_env::with_vars(
+            vec![
+                (ENV_WEB_HOOK, Some(CORRECT_WEB_HOOK)),
+                (ENV_CHECK_INTERVAL, Some(CORRECT_CHECK_INTERVAL)),
+                (ENV_METRIC_IP, Some("abcde")),
+                (ENV_METRIC_PORT, Some(CORRECT_METRIC_PORT)),
+            ],
+            || {
+                let result = Config::from_env();
+                assert!(result.is_err());
+            },
+        );
+    }
+
+    #[test]
+    fn test_from_env_invalid_metric_port() {
+        temp_env::with_vars(
+            vec![
+                (ENV_WEB_HOOK, Some(CORRECT_WEB_HOOK)),
+                (ENV_CHECK_INTERVAL, Some(CORRECT_CHECK_INTERVAL)),
+                (ENV_METRIC_IP, Some(CORRECT_METRIC_IP)),
+                (ENV_METRIC_PORT, Some("abcde")),
+            ],
+            || {
+                let result = Config::from_env();
+                assert!(result.is_err());
+            },
+        );
+    }
+
+    #[test]
+    fn test_from_env_invalid_unicode_character() {
+        temp_env::with_vars(
+            vec![
+                (ENV_WEB_HOOK, Some("⛷")),
+                (ENV_CHECK_INTERVAL, Some("⛷")),
+            ],
+            || {
+                let result = Config::from_env();
+                assert!(result.is_err());
+            },
+        );
+    }
+}
