@@ -9,7 +9,7 @@ const ENV_CHECK_INTERVAL: &str = "CHECK_INTERVAL";
 const ENV_METRIC_IP: &str = "METRIC_IP";
 const ENV_METRIC_PORT: &str = "METRIC_PORT";
 
-const DEFAULT_METRIC_IP: &str = "0.0.0.0";
+const DEFAULT_METRIC_IP: &str = "127.0.0.1";
 const DEFAULT_METRIC_PORT: u16 = 9184;
 
 pub struct Config {
