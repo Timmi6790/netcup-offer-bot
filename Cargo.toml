@@ -27,6 +27,8 @@ lazy_static = "1.4.0"
 
 [dev-dependencies]
 temp-env = "0.3.1"
+tempdir = "0.3.7"
+serde_test = "1.0.152"
 
 [profile.release]
 lto = true
