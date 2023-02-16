@@ -9,12 +9,11 @@ use std::str::FromStr;
 
 use log::LevelFilter;
 use pretty_env_logger::env_logger::Builder;
-use sentry::integrations::log::RecordMapping;
 use sentry::ClientInitGuard;
 use strum::IntoEnumIterator;
 use tokio::time;
-use tokio_stream::wrappers::IntervalStream;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::IntervalStream;
 
 use crate::config::Config;
 use crate::discord_webhook::DiscordWebhook;
