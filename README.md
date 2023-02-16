@@ -62,6 +62,15 @@ resources:
     memory: 5Mi
 ```
 
+3. Install the helm chart
+
+```shell
+helm install netcup-offer-bot \
+  --create-namespace \
+  --namespace netcup \
+  netcup-offer-bot
+```
+
 ### Installation - Docker
 
 - [Docker Image](https://hub.docker.com/repository/docker/timmi6790/netcup-offer-bot)
