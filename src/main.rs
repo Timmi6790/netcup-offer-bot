@@ -12,8 +12,8 @@ use pretty_env_logger::env_logger::Builder;
 use sentry::ClientInitGuard;
 use strum::IntoEnumIterator;
 use tokio::time;
-use tokio_stream::StreamExt;
 use tokio_stream::wrappers::IntervalStream;
+use tokio_stream::StreamExt;
 
 use crate::config::Config;
 use crate::discord_webhook::DiscordWebhook;
@@ -147,6 +147,9 @@ fn setup_logging(dns: Option<String>) -> Result<Option<ClientInitGuard>> {
         dns,
         sentry::ClientOptions {
             release: sentry::release_name!(),
+            auto_session_tracking: true,
+            enable_profiling: true,
+            attach_stacktrace: true,
             ..Default::default()
         },
     ))))
