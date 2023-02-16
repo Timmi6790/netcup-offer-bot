@@ -16,6 +16,7 @@
 ![Issues](https://img.shields.io/github/issues/Timmi6790/netcup-offer-bot)
 [![codecov](https://codecov.io/gh/Timmi6790/netcup-offer-bot/branch/master/graph/badge.svg?token=JEK95V1906)](https://codecov.io/gh/Timmi6790/netcup-offer-bot)
 ![License](https://img.shields.io/github/license/Timmi6790/netcup-offer-bot)
+[![wakatime](https://wakatime.com/badge/github/Timmi6790/netcup-offer-bot.svg)](https://wakatime.com/badge/github/Timmi6790/netcup-offer-bot)
 
 </div>
 
