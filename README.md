@@ -42,6 +42,8 @@ env:
   webHook: ""
   # Check interval in seconds
   checkInterval: 180
+  # Optional log level
+  logLevel: info
 
 persistence:
   data:
