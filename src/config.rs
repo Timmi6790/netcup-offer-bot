@@ -67,8 +67,10 @@ mod tests {
 
     #[test]
     fn test_from_env_missing_env() {
-        let result = Config::from_env();
-        assert!(result.is_err());
+        temp_env::with_vars_unset(vec![ENV_WEB_HOOK, ENV_CHECK_INTERVAL], || {
+            let result = Config::from_env();
+            assert!(result.is_err());
+        });
     }
 
     #[test]
@@ -115,7 +117,7 @@ mod tests {
                     config.metric_socket,
                     SocketAddr::new(
                         CORRECT_METRIC_IP.parse().unwrap(),
-                        CORRECT_METRIC_PORT.parse().unwrap()
+                        CORRECT_METRIC_PORT.parse().unwrap(),
                     )
                 );
             },
