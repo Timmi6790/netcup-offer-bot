@@ -63,6 +63,12 @@ impl From<log::SetLoggerError> for Error {
     }
 }
 
+impl From<log::ParseLevelError> for Error {
+    fn from(err: log::ParseLevelError) -> Self {
+        Self::Logger(err.to_string())
+    }
+}
+
 impl From<VarError> for Error {
     fn from(err: VarError) -> Self {
         Self::ConfigVar(err.to_string())

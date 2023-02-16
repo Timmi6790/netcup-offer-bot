@@ -1,8 +1,15 @@
-use std::env;
-use std::net::SocketAddr;
+#[macro_use]
+extern crate log;
+extern crate pretty_env_logger;
 
-use log::{error, info, trace};
-use sentry::ClientInitGuard;
+use std::env;
+use std::io::Write;
+use std::net::SocketAddr;
+use std::str::FromStr;
+
+use log::LevelFilter;
+use pretty_env_logger::env_logger::Builder;
+use sentry::{capture_message, ClientInitGuard};
 use strum::IntoEnumIterator;
 use tokio::time;
 use tokio_stream::wrappers::IntervalStream;
@@ -22,6 +29,9 @@ mod feed_state;
 mod metrics;
 
 const ENV_SENTRY_DSN: &str = "SENTRY_DSN";
+const ENV_LOG_LEVEL: &str = "LOG_LEVEL";
+
+const DEFAULT_LOG_LEVEL: &str = "info";
 
 pub type Result<T> = anyhow::Result<T, Error>;
 
@@ -32,10 +42,10 @@ async fn main() -> Result<()> {
         Err(_) => None,
     };
     // Prevents the process from exiting until all events are sent
-    let _sentry = setup_sentry(dns);
+    let _sentry = setup_logging(dns)?;
 
-    setup_logging()?;
-
+    error!("Test error 2 {}", Error::Custom("Test error 2".to_string()));
+    capture_message("Test message", sentry::Level::Error);
     let config = Config::from_env()?;
 
     setup_metrics(&config.metric_socket)?;
@@ -88,40 +98,60 @@ async fn run(config: Config) -> Result<()> {
     Ok(())
 }
 
-fn setup_sentry(dns: Option<String>) -> Option<ClientInitGuard> {
+fn build_logger() -> Result<(Builder, LevelFilter)> {
+    let mut log_builder = pretty_env_logger::formatted_builder();
+
+    // Set level
+    let level = env::var(ENV_LOG_LEVEL).unwrap_or_else(|_| DEFAULT_LOG_LEVEL.to_string());
+    let level = LevelFilter::from_str(&level)?;
+    log_builder.filter_level(level);
+
+    // Set format
+    log_builder.format(|buf, record| {
+        let timestamp = buf.timestamp();
+        writeln!(
+            buf,
+            "{}[{}][{}] {}",
+            timestamp,
+            record.target(),
+            record.level(),
+            record.args()
+        )
+    });
+
+    Ok((log_builder, level))
+}
+
+fn setup_logging(dns: Option<String>) -> Result<Option<ClientInitGuard>> {
+    // Setup logger
+    let (mut log_builder, level) = build_logger()?;
+
+    // Only enable sentry if the dns is set
     let dns = match dns {
         Some(dns) => dns,
         None => {
-            println!("{ENV_SENTRY_DSN} not set, skipping Sentry setup");
-            return None;
+            log_builder.init();
+
+            info!("{ENV_SENTRY_DSN} not set, skipping Sentry setup");
+            return Ok(None);
         }
     };
 
-    Some(sentry::init((
+    // Sentry
+    // Sentry logging support
+    let logger = sentry::integrations::log::SentryLogger::with_dest(log_builder.build());
+
+    log::set_boxed_logger(Box::new(logger)).unwrap();
+    log::set_max_level(level);
+
+    // Sentry innit
+    Ok(Some(sentry::init((
         dns,
         sentry::ClientOptions {
             release: sentry::release_name!(),
             ..Default::default()
         },
-    )))
-}
-
-fn setup_logging() -> Result<()> {
-    fern::Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "{}[{}][{}] {}",
-                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                record.target(),
-                record.level(),
-                message
-            ))
-        })
-        .level(log::LevelFilter::Info)
-        .chain(std::io::stdout())
-        .apply()?;
-
-    Ok(())
+    ))))
 }
 
 fn setup_metrics(socket: &SocketAddr) -> Result<()> {

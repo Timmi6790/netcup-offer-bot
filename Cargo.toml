@@ -10,7 +10,7 @@ anyhow = { version = "1.0.51", features = ["backtrace"] }
 thiserror = "1.0"
 sentry = { version = "0.29.3", features = ["anyhow", "debug-images", "log", "reqwest"] }
 log = "0.4.17"
-fern = "0.6.1"
+pretty_env_logger = "0.4.0"
 chrono = { version = "0.4.23", default-features = false, features = ["clock", "std", "wasmbind", "serde"] }
 webhook = "2.1.2"
 rss = { version = "2.0.0", features = ["validation"] }
@@ -33,3 +33,4 @@ serde_test = "1.0.152"
 [profile.release]
 lto = true
 codegen-units = 1
+debug = true
