@@ -10,11 +10,11 @@ use reqwest_tracing::{SpanBackendWithUrl, TracingMiddleware};
 use sentry::ClientInitGuard;
 use strum::IntoEnumIterator;
 use tokio::time;
-use tokio_stream::wrappers::IntervalStream;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::IntervalStream;
+use tracing_subscriber::{filter, Layer};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{filter, Layer};
 
 use crate::config::Config;
 use crate::discord_webhook::DiscordWebhook;
@@ -89,9 +89,9 @@ fn setup_sentry(dns: Option<String>) -> Option<ClientInitGuard> {
         sentry::ClientOptions {
             release: sentry::release_name!(),
             auto_session_tracking: true,
-            traces_sample_rate: 1.0,
+            traces_sample_rate: 0.2,
             enable_profiling: true,
-            profiles_sample_rate: 1.0,
+            profiles_sample_rate: 0.2,
             attach_stacktrace: true,
             ..Default::default()
         },
