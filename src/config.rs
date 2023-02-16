@@ -84,7 +84,10 @@ mod tests {
 
                 let config = result.unwrap();
                 assert_eq!(config.discord_webhook_url, CORRECT_WEB_HOOK);
-                assert_eq!(config.check_interval, Duration::from_secs(CORRECT_CHECK_INTERVAL.parse().unwrap()));
+                assert_eq!(
+                    config.check_interval,
+                    Duration::from_secs(CORRECT_CHECK_INTERVAL.parse().unwrap())
+                );
             },
         );
     }
@@ -104,8 +107,17 @@ mod tests {
 
                 let config = result.unwrap();
                 assert_eq!(config.discord_webhook_url, CORRECT_WEB_HOOK);
-                assert_eq!(config.check_interval, Duration::from_secs(CORRECT_CHECK_INTERVAL.parse().unwrap()));
-                assert_eq!(config.metric_socket, SocketAddr::new(CORRECT_METRIC_IP.parse().unwrap(), CORRECT_METRIC_PORT.parse().unwrap()));
+                assert_eq!(
+                    config.check_interval,
+                    Duration::from_secs(CORRECT_CHECK_INTERVAL.parse().unwrap())
+                );
+                assert_eq!(
+                    config.metric_socket,
+                    SocketAddr::new(
+                        CORRECT_METRIC_IP.parse().unwrap(),
+                        CORRECT_METRIC_PORT.parse().unwrap()
+                    )
+                );
             },
         );
     }
@@ -159,10 +171,7 @@ mod tests {
     #[test]
     fn test_from_env_invalid_unicode_character() {
         temp_env::with_vars(
-            vec![
-                (ENV_WEB_HOOK, Some("⛷")),
-                (ENV_CHECK_INTERVAL, Some("⛷")),
-            ],
+            vec![(ENV_WEB_HOOK, Some("⛷")), (ENV_CHECK_INTERVAL, Some("⛷"))],
             || {
                 let result = Config::from_env();
                 assert!(result.is_err());

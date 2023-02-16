@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use chrono::{DateTime, FixedOffset, Utc};
 use chrono::serde::ts_seconds_option;
+use chrono::{DateTime, FixedOffset, Utc};
 use log::{debug, error, info, trace};
 use rss::Item;
 use serde::{Deserialize, Serialize};
@@ -160,8 +160,6 @@ mod tests_feed_states {
     use chrono::Duration;
     use tempfile::{tempdir, TempDir};
 
-    use tempdir::TempDir;
-
     use super::*;
 
     struct TestFile {
@@ -175,7 +173,10 @@ mod tests_feed_states {
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("file.json");
 
-        TestFile { dir, path: file_path }
+        TestFile {
+            dir,
+            path: file_path,
+        }
     }
 
     fn create_empty_feed_states() -> FeedStates {
@@ -186,10 +187,11 @@ mod tests_feed_states {
 
     fn create_feed_states(dirty: bool) -> FeedStates {
         let mut map = HashMap::new();
-        map.insert(Feed::Netcup, FeedState::new(Some(get_current_utc_time()), dirty));
-        FeedStates {
-            feeds: map,
-        }
+        map.insert(
+            Feed::Netcup,
+            FeedState::new(Some(get_current_utc_time()), dirty),
+        );
+        FeedStates { feeds: map }
     }
 
     fn create_rss_item(date: DateTime<Utc>) -> Item {
@@ -204,7 +206,9 @@ mod tests_feed_states {
     fn get_current_utc_time() -> DateTime<Utc> {
         let now = Utc::now();
         let rfc2822 = now.to_rfc2822();
-        DateTime::parse_from_rfc2822(&rfc2822).unwrap().with_timezone(&Utc)
+        DateTime::parse_from_rfc2822(&rfc2822)
+            .unwrap()
+            .with_timezone(&Utc)
     }
 
     #[test]
@@ -220,11 +224,16 @@ mod tests_feed_states {
 
         let mut map = HashMap::new();
         // Don't use UTC::now here since nano seconds are not saved during the serialization
-        map.insert(Feed::Netcup, FeedState::new(Some(get_current_utc_time()), false));
-        let expected = FeedStates {
-            feeds: map,
-        };
-        std::fs::write(&test_file.path, serde_json::to_string_pretty(&expected).unwrap()).unwrap();
+        map.insert(
+            Feed::Netcup,
+            FeedState::new(Some(get_current_utc_time()), false),
+        );
+        let expected = FeedStates { feeds: map };
+        std::fs::write(
+            &test_file.path,
+            serde_json::to_string_pretty(&expected).unwrap(),
+        )
+        .unwrap();
 
         let config = FeedStates::load_from_path(&test_file.path).unwrap();
         assert_eq!(config, expected);
@@ -275,7 +284,10 @@ mod tests_feed_states {
 
         let feed = Feed::Netcup;
         let highest_time = get_current_utc_time() + Duration::hours(1);
-        let items = vec![create_rss_item(get_current_utc_time()), create_rss_item(highest_time)];
+        let items = vec![
+            create_rss_item(get_current_utc_time()),
+            create_rss_item(highest_time),
+        ];
         let filtered_items = feed_states.get_new_feed(&feed, items.clone());
 
         assert_eq!(items, filtered_items);
