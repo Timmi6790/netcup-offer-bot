@@ -12,7 +12,7 @@
 <div align="center">
 
 ![Docker Image Version (latest semver)](https://img.shields.io/docker/v/timmi6790/netcup-offer-bot)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Timmi6790/netcup-offer-bot/clippy.yml)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Timmi6790/netcup-offer-bot/build.yml)
 ![Issues](https://img.shields.io/github/issues/Timmi6790/netcup-offer-bot)
 [![codecov](https://codecov.io/gh/Timmi6790/netcup-offer-bot/branch/master/graph/badge.svg?token=JEK95V1906)](https://codecov.io/gh/Timmi6790/netcup-offer-bot)
 ![License](https://img.shields.io/github/license/Timmi6790/netcup-offer-bot)
