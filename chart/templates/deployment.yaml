@@ -65,6 +65,10 @@ spec:
             - name: METRIC_IP
               value: {{ . | quote }}
             {{- end}}
+            {{- with .Values.env.logLevel}}
+            - name: LOG_LEVEL
+              value: {{ . | quote }}
+            {{- end}}
           volumeMounts:
             - mountPath: /app/data
               name: {{ .Release.Name }}-claim
