@@ -1,27 +1,29 @@
-use std::env::VarError;
-
 use thiserror::Error;
 
-#[derive(Error, Debug, Clone)]
+#[derive(Error, Debug)]
 pub enum Error {
-    #[error("Logger: {0}")]
-    Logger(String),
-    #[error("Config var: {0}")]
+    #[error("Tracing error")]
+    Logger(#[from] tracing::metadata::ParseLevelError),
+    #[error("Config error: {0}")]
     ConfigVar(String),
-    #[error("Parse error: {0}")]
-    ParseError(String),
+    #[error("Parser error")]
+    ParseError(#[from] std::num::ParseIntError),
     #[error("Rss: {0}")]
     Rss(String),
-    #[error("Reqwest: {0}")]
-    Reqwest(String),
-    #[error("tokio join error: {0}")]
-    TokioJoinError(String),
-    #[error("IO error: {0}")]
-    IoError(String),
-    #[error("Serde: {0}")]
-    Serde(String),
-    #[error("Prometheus: {0}")]
-    Prometheus(String),
+    #[error("Reqwest error")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("Reqwest middleware error")]
+    ReqwestMiddleware(#[from] reqwest_middleware::Error),
+    #[error("Tokio error")]
+    TokioJoinError(#[from] tokio::task::JoinError),
+    #[error("IO error")]
+    IoError(#[from] std::io::Error),
+    #[error("Serde error")]
+    Serde(#[from] serde_json::Error),
+    #[error("Prometheus error")]
+    Prometheus(#[from] prometheus::Error),
+    #[error("Prometheus exporter error")]
+    PrometheusExport(#[from] prometheus_exporter::Error),
     #[error("Custom: {0}")]
     Custom(String),
 }
@@ -29,24 +31,6 @@ pub enum Error {
 impl Error {
     pub fn custom(msg: String) -> Self {
         Self::Custom(msg)
-    }
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(err: reqwest::Error) -> Self {
-        Error::Reqwest(err.to_string())
-    }
-}
-
-impl From<reqwest_middleware::Error> for Error {
-    fn from(err: reqwest_middleware::Error) -> Self {
-        Error::Reqwest(err.to_string())
-    }
-}
-
-impl From<tokio::task::JoinError> for Error {
-    fn from(err: tokio::task::JoinError) -> Self {
-        Error::TokioJoinError(err.to_string())
     }
 }
 
@@ -62,45 +46,9 @@ impl From<rss::validation::ValidationError> for Error {
     }
 }
 
-impl From<VarError> for Error {
-    fn from(err: VarError) -> Self {
+impl From<std::env::VarError> for Error {
+    fn from(err: std::env::VarError) -> Self {
         Self::ConfigVar(err.to_string())
-    }
-}
-
-impl From<std::num::ParseIntError> for Error {
-    fn from(err: std::num::ParseIntError) -> Self {
-        Self::ParseError(err.to_string())
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Self {
-        Self::IoError(err.to_string())
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Self {
-        Self::Serde(err.to_string())
-    }
-}
-
-impl From<prometheus::Error> for Error {
-    fn from(err: prometheus::Error) -> Self {
-        Self::Prometheus(err.to_string())
-    }
-}
-
-impl From<prometheus_exporter::Error> for Error {
-    fn from(err: prometheus_exporter::Error) -> Self {
-        Self::Prometheus(err.to_string())
-    }
-}
-
-impl From<tracing::metadata::ParseLevelError> for Error {
-    fn from(err: tracing::metadata::ParseLevelError) -> Self {
-        Self::Logger(err.to_string())
     }
 }
 
