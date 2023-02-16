@@ -1,6 +1,5 @@
 use std::env::VarError;
 
-use log::error;
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
@@ -57,18 +56,6 @@ impl From<rss::validation::ValidationError> for Error {
     }
 }
 
-impl From<log::SetLoggerError> for Error {
-    fn from(err: log::SetLoggerError) -> Self {
-        Self::Logger(err.to_string())
-    }
-}
-
-impl From<log::ParseLevelError> for Error {
-    fn from(err: log::ParseLevelError) -> Self {
-        Self::Logger(err.to_string())
-    }
-}
-
 impl From<VarError> for Error {
     fn from(err: VarError) -> Self {
         Self::ConfigVar(err.to_string())
@@ -102,6 +89,12 @@ impl From<prometheus::Error> for Error {
 impl From<prometheus_exporter::Error> for Error {
     fn from(err: prometheus_exporter::Error) -> Self {
         Self::Prometheus(err.to_string())
+    }
+}
+
+impl From<tracing::metadata::ParseLevelError> for Error {
+    fn from(err: tracing::metadata::ParseLevelError) -> Self {
+        Self::Logger(err.to_string())
     }
 }
 

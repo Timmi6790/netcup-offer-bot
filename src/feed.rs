@@ -23,6 +23,7 @@ impl Feed {
         }
     }
 
+    #[tracing::instrument]
     pub async fn fetch(&self) -> crate::Result<Channel> {
         let content = reqwest::get(self.url()).await?.bytes().await?;
         let channel = Channel::read_from(&content[..])?;
