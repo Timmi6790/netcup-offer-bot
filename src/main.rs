@@ -9,7 +9,8 @@ use std::str::FromStr;
 
 use log::LevelFilter;
 use pretty_env_logger::env_logger::Builder;
-use sentry::{capture_message, ClientInitGuard};
+use sentry::integrations::log::RecordMapping;
+use sentry::ClientInitGuard;
 use strum::IntoEnumIterator;
 use tokio::time;
 use tokio_stream::wrappers::IntervalStream;
@@ -44,8 +45,6 @@ async fn main() -> Result<()> {
     // Prevents the process from exiting until all events are sent
     let _sentry = setup_logging(dns)?;
 
-    error!("Test error 2 {}", Error::Custom("Test error 2".to_string()));
-    capture_message("Test message", sentry::Level::Error);
     let config = Config::from_env()?;
 
     setup_metrics(&config.metric_socket)?;
