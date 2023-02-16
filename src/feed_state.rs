@@ -158,6 +158,8 @@ mod tests_feed_states {
     use std::path::PathBuf;
 
     use chrono::Duration;
+    use tempfile::{tempdir, TempDir};
+
     use tempdir::TempDir;
 
     use super::*;
@@ -170,7 +172,7 @@ mod tests_feed_states {
     }
 
     fn create_temp_file() -> TestFile {
-        let dir = TempDir::new("test").unwrap();
+        let dir = tempdir().unwrap();
         let file_path = dir.path().join("file.json");
 
         TestFile { dir, path: file_path }
