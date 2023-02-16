@@ -1,4 +1,3 @@
-use log::info;
 use rss::Item;
 use webhook::client::WebhookClient;
 
@@ -10,6 +9,12 @@ pub struct DiscordWebhook {
     client: WebhookClient,
 }
 
+impl std::fmt::Debug for DiscordWebhook {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DiscordWebhook").finish()
+    }
+}
+
 impl DiscordWebhook {
     pub fn new(url: &str) -> Self {
         DiscordWebhook {
@@ -17,6 +22,7 @@ impl DiscordWebhook {
         }
     }
 
+    #[tracing::instrument]
     pub async fn send_discord_message(&self, feed: &Feed, item: Item) -> Result<bool> {
         info!(
             "Sending message for feed {} with title \"{}\"",

@@ -3,7 +3,6 @@ use std::path::Path;
 
 use chrono::serde::ts_seconds_option;
 use chrono::{DateTime, FixedOffset, Utc};
-use log::{debug, error, info, trace};
 use rss::Item;
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +21,7 @@ impl FeedStates {
         FeedStates::load_from_path(path)
     }
 
+    #[tracing::instrument]
     fn load_from_path(file: &Path) -> crate::Result<Self> {
         if file.exists() {
             info!("Loading feed state from file");
@@ -49,6 +49,7 @@ impl FeedStates {
         self.feeds.entry(*feed).or_insert_with(FeedState::default)
     }
 
+    #[tracing::instrument]
     pub fn get_new_feed(&mut self, feed: &Feed, items: Vec<Item>) -> Vec<Item> {
         if items.is_empty() {
             return items;
@@ -102,20 +103,22 @@ impl FeedStates {
         self.feeds.values().any(|state| state.dirty)
     }
 
-    pub fn save(&mut self) -> crate::Result<()> {
-        self.save_to_path(Path::new(FEED_STATE_FILE))
+    #[tracing::instrument]
+    pub async fn save(&mut self) -> crate::Result<()> {
+        self.save_to_path(Path::new(FEED_STATE_FILE)).await
     }
 
-    fn save_to_path(&mut self, file: &Path) -> crate::Result<()> {
+    #[tracing::instrument]
+    async fn save_to_path(&mut self, file: &Path) -> crate::Result<()> {
         if !self.is_dirty() {
-            trace!("Feed state is not dirty, skipping save");
+            debug!("Feed state is not dirty, skipping save");
             return Ok(());
         }
 
         debug!("Saving feed state to file");
 
         // Save to file
-        std::fs::write(file, serde_json::to_string_pretty(self)?)?;
+        tokio::fs::write(file, serde_json::to_string_pretty(self)?).await?;
 
         self.un_dirty();
 
@@ -381,35 +384,35 @@ mod tests_feed_states {
         assert_eq!(filtered_items, after);
     }
 
-    #[test]
-    fn test_save_no_dirty_empty() {
+    #[tokio::test]
+    async fn test_save_no_dirty_empty() {
         let test_file = create_temp_file();
 
         let mut feed_states = create_empty_feed_states();
 
-        feed_states.save_to_path(&test_file.path).unwrap();
+        feed_states.save_to_path(&test_file.path).await.unwrap();
 
         assert!(!test_file.path.exists());
     }
 
-    #[test]
-    fn test_save_no_dirty() {
+    #[tokio::test]
+    async fn test_save_no_dirty() {
         let test_file = create_temp_file();
 
         let mut feed_states = create_feed_states(false);
 
-        feed_states.save_to_path(&test_file.path).unwrap();
+        feed_states.save_to_path(&test_file.path).await.unwrap();
 
         assert!(!test_file.path.exists());
     }
 
-    #[test]
-    fn test_save_dirty() {
+    #[tokio::test]
+    async fn test_save_dirty() {
         let test_file = create_temp_file();
 
         let mut feed_states = create_feed_states(true);
 
-        feed_states.save_to_path(&test_file.path).unwrap();
+        feed_states.save_to_path(&test_file.path).await.unwrap();
 
         assert!(test_file.path.exists());
     }

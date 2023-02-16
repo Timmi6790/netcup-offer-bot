@@ -1,19 +1,20 @@
 #[macro_use]
-extern crate log;
-extern crate pretty_env_logger;
+extern crate tracing;
 
 use std::env;
-use std::io::Write;
 use std::net::SocketAddr;
 use std::str::FromStr;
 
-use log::LevelFilter;
-use pretty_env_logger::env_logger::Builder;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_tracing::{SpanBackendWithUrl, TracingMiddleware};
 use sentry::ClientInitGuard;
 use strum::IntoEnumIterator;
 use tokio::time;
-use tokio_stream::wrappers::IntervalStream;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::IntervalStream;
+use tracing_subscriber::{filter, Layer};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 use crate::config::Config;
 use crate::discord_webhook::DiscordWebhook;
@@ -37,125 +38,136 @@ pub type Result<T> = anyhow::Result<T, Error>;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    setup_tracing()?;
+
     let dns = match env::var(ENV_SENTRY_DSN) {
         Ok(dns) => Some(dns),
         Err(_) => None,
     };
     // Prevents the process from exiting until all events are sent
-    let _sentry = setup_logging(dns)?;
+    let _sentry = setup_sentry(dns);
 
     let config = Config::from_env()?;
 
     setup_metrics(&config.metric_socket)?;
 
     info!("Starting feed bot");
-    run(config).await
-}
-
-async fn run(config: Config) -> Result<()> {
-    let mut states = FeedStates::load()?;
-    let hook = DiscordWebhook::new(&config.discord_webhook_url);
-
+    let mut checker = FeedChecker::from_config(&config);
     let mut stream = IntervalStream::new(time::interval(config.check_interval));
     while let Some(_ts) = stream.next().await {
-        trace!("Run feed check");
-
-        for feed in Feed::iter() {
-            trace!("Checking feed {}", feed.name());
-
-            match feed.fetch().await {
-                Ok(feed_result) => {
-                    // Filter out already sent items
-                    let items = states.get_new_feed(&feed, feed_result.items);
-                    if items.is_empty() {
-                        continue;
-                    }
-
-                    // Increase metrics
-                    let counter = metrics::FEED_COUNTER.with_label_values(&[feed.name()]);
-                    counter.inc_by(items.len() as u64);
-
-                    // Send feed to discord
-                    for item in items {
-                        if let Err(e) = hook.send_discord_message(&feed, item).await {
-                            error!("Error sending message for feed {}: {}", feed.name(), e);
-                        }
-                    }
-                }
-                Err(e) => {
-                    error!("Error fetching feed for {}: {}", feed.name(), e);
-                }
-            }
-        }
-
-        if let Err(e) = states.save() {
-            error!("Error saving feed states: {}", e);
-        }
+        checker.check_feeds().await;
     }
 
     Ok(())
 }
 
-fn build_logger() -> Result<(Builder, LevelFilter)> {
-    let mut log_builder = pretty_env_logger::formatted_builder();
-
-    // Set level
+fn setup_tracing() -> Result<()> {
     let level = env::var(ENV_LOG_LEVEL).unwrap_or_else(|_| DEFAULT_LOG_LEVEL.to_string());
-    let level = LevelFilter::from_str(&level)?;
-    log_builder.filter_level(level);
+    let level = tracing::Level::from_str(&level)?;
 
-    // Set format
-    log_builder.format(|buf, record| {
-        let timestamp = buf.timestamp();
-        writeln!(
-            buf,
-            "{}[{}][{}] {}",
-            timestamp,
-            record.target(),
-            record.level(),
-            record.args()
-        )
-    });
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::from_level(level)))
+        .with(sentry::integrations::tracing::layer().with_filter(filter::LevelFilter::DEBUG))
+        .init();
 
-    Ok((log_builder, level))
+    Ok(())
 }
 
-fn setup_logging(dns: Option<String>) -> Result<Option<ClientInitGuard>> {
-    // Setup logger
-    let (mut log_builder, level) = build_logger()?;
-
+fn setup_sentry(dns: Option<String>) -> Option<ClientInitGuard> {
     // Only enable sentry if the dns is set
     let dns = match dns {
         Some(dns) => dns,
         None => {
-            log_builder.init();
-
             info!("{ENV_SENTRY_DSN} not set, skipping Sentry setup");
-            return Ok(None);
+            return None;
         }
     };
 
-    // Sentry
-    // Sentry logging support
-    let logger = sentry::integrations::log::SentryLogger::with_dest(log_builder.build());
-
-    log::set_boxed_logger(Box::new(logger)).unwrap();
-    log::set_max_level(level);
-
     // Sentry innit
-    Ok(Some(sentry::init((
+    Some(sentry::init((
         dns,
         sentry::ClientOptions {
             release: sentry::release_name!(),
             auto_session_tracking: true,
+            traces_sample_rate: 0.2,
             enable_profiling: true,
+            profiles_sample_rate: 0.2,
             attach_stacktrace: true,
             ..Default::default()
         },
-    ))))
+    )))
 }
 
 fn setup_metrics(socket: &SocketAddr) -> Result<()> {
     prometheus_exporter::start(*socket)?;
     Ok(())
+}
+
+#[derive(Debug)]
+struct FeedChecker {
+    client: ClientWithMiddleware,
+    states: FeedStates,
+    hook: DiscordWebhook,
+}
+
+impl FeedChecker {
+    pub fn from_config(config: &Config) -> Self {
+        let client = ClientBuilder::new(reqwest::Client::new())
+            .with(TracingMiddleware::<SpanBackendWithUrl>::new())
+            .build();
+        let states = FeedStates::load().unwrap();
+        let hook = DiscordWebhook::new(&config.discord_webhook_url);
+
+        Self {
+            client,
+            states,
+            hook,
+        }
+    }
+
+    #[tracing::instrument]
+    pub async fn check_feeds(&mut self) {
+        trace!("Run feed check");
+
+        for feed in Feed::iter() {
+            self.check_feed(feed).await;
+        }
+
+        if let Err(e) = self.states.save().await {
+            error!("Error saving feed states: {}", e);
+        }
+    }
+
+    #[tracing::instrument]
+    pub async fn check_feed(&mut self, feed: Feed) {
+        debug!("Checking feed {}", feed.name());
+
+        match feed.fetch(&self.client).await {
+            Ok(feed_result) => {
+                // Filter out already sent items
+                trace!("Found {} items for feed", feed_result.items.len());
+                let items = self.states.get_new_feed(&feed, feed_result.items);
+                if items.is_empty() {
+                    debug!("No new items found");
+                    return;
+                }
+
+                debug!("Found {} new items", items.len());
+
+                // Increase metrics
+                let counter = metrics::FEED_COUNTER.with_label_values(&[feed.name()]);
+                counter.inc_by(items.len() as u64);
+
+                // Send feed to discord
+                for item in items {
+                    if let Err(e) = self.hook.send_discord_message(&feed, item).await {
+                        error!("Error sending message for feed {}: {}", feed.name(), e);
+                    }
+                }
+            }
+            Err(e) => {
+                error!("Error fetching feed for {}: {}", feed.name(), e);
+            }
+        }
+    }
 }
