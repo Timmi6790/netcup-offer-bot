@@ -5,6 +5,8 @@ use std::env;
 use std::net::SocketAddr;
 use std::str::FromStr;
 
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_tracing::{SpanBackendWithUrl, TracingMiddleware};
 use sentry::ClientInitGuard;
 use strum::IntoEnumIterator;
 use tokio::time;
@@ -65,7 +67,7 @@ fn setup_tracing() -> Result<()> {
 
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer().with_filter(filter::LevelFilter::from_level(level)))
-        .with(sentry::integrations::tracing::layer())
+        .with(sentry::integrations::tracing::layer().with_filter(filter::LevelFilter::DEBUG))
         .init();
 
     Ok(())
@@ -103,16 +105,24 @@ fn setup_metrics(socket: &SocketAddr) -> Result<()> {
 
 #[derive(Debug)]
 struct FeedChecker {
+    client: ClientWithMiddleware,
     states: FeedStates,
     hook: DiscordWebhook,
 }
 
 impl FeedChecker {
     pub fn from_config(config: &Config) -> Self {
+        let client = ClientBuilder::new(reqwest::Client::new())
+            .with(TracingMiddleware::<SpanBackendWithUrl>::new())
+            .build();
         let states = FeedStates::load().unwrap();
         let hook = DiscordWebhook::new(&config.discord_webhook_url);
 
-        Self { states, hook }
+        Self {
+            client,
+            states,
+            hook,
+        }
     }
 
     #[tracing::instrument]
@@ -120,35 +130,44 @@ impl FeedChecker {
         trace!("Run feed check");
 
         for feed in Feed::iter() {
-            trace!("Checking feed {}", feed.name());
-
-            match feed.fetch().await {
-                Ok(feed_result) => {
-                    // Filter out already sent items
-                    let items = self.states.get_new_feed(&feed, feed_result.items);
-                    if items.is_empty() {
-                        continue;
-                    }
-
-                    // Increase metrics
-                    let counter = metrics::FEED_COUNTER.with_label_values(&[feed.name()]);
-                    counter.inc_by(items.len() as u64);
-
-                    // Send feed to discord
-                    for item in items {
-                        if let Err(e) = self.hook.send_discord_message(&feed, item).await {
-                            error!("Error sending message for feed {}: {}", feed.name(), e);
-                        }
-                    }
-                }
-                Err(e) => {
-                    error!("Error fetching feed for {}: {}", feed.name(), e);
-                }
-            }
+            self.check_feed(feed).await;
         }
 
         if let Err(e) = self.states.save().await {
             error!("Error saving feed states: {}", e);
+        }
+    }
+
+    #[tracing::instrument]
+    pub async fn check_feed(&mut self, feed: Feed) {
+        debug!("Checking feed {}", feed.name());
+
+        match feed.fetch(&self.client).await {
+            Ok(feed_result) => {
+                // Filter out already sent items
+                trace!("Found {} items for feed", feed_result.items.len());
+                let items = self.states.get_new_feed(&feed, feed_result.items);
+                if items.is_empty() {
+                    debug!("No new items found");
+                    return;
+                }
+
+                debug!("Found {} new items", items.len());
+
+                // Increase metrics
+                let counter = metrics::FEED_COUNTER.with_label_values(&[feed.name()]);
+                counter.inc_by(items.len() as u64);
+
+                // Send feed to discord
+                for item in items {
+                    if let Err(e) = self.hook.send_discord_message(&feed, item).await {
+                        error!("Error sending message for feed {}: {}", feed.name(), e);
+                    }
+                }
+            }
+            Err(e) => {
+                error!("Error fetching feed for {}: {}", feed.name(), e);
+            }
         }
     }
 }

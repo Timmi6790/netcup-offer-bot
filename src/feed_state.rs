@@ -21,6 +21,7 @@ impl FeedStates {
         FeedStates::load_from_path(path)
     }
 
+    #[tracing::instrument]
     fn load_from_path(file: &Path) -> crate::Result<Self> {
         if file.exists() {
             info!("Loading feed state from file");
@@ -48,6 +49,7 @@ impl FeedStates {
         self.feeds.entry(*feed).or_insert_with(FeedState::default)
     }
 
+    #[tracing::instrument]
     pub fn get_new_feed(&mut self, feed: &Feed, items: Vec<Item>) -> Vec<Item> {
         if items.is_empty() {
             return items;
@@ -101,13 +103,15 @@ impl FeedStates {
         self.feeds.values().any(|state| state.dirty)
     }
 
+    #[tracing::instrument]
     pub async fn save(&mut self) -> crate::Result<()> {
         self.save_to_path(Path::new(FEED_STATE_FILE)).await
     }
 
+    #[tracing::instrument]
     async fn save_to_path(&mut self, file: &Path) -> crate::Result<()> {
         if !self.is_dirty() {
-            trace!("Feed state is not dirty, skipping save");
+            debug!("Feed state is not dirty, skipping save");
             return Ok(());
         }
 

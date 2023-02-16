@@ -1,5 +1,6 @@
 use std::fmt;
 
+use reqwest_middleware::ClientWithMiddleware;
 use rss::validation::Validate;
 use rss::Channel;
 use serde::{Deserialize, Serialize};
@@ -24,8 +25,8 @@ impl Feed {
     }
 
     #[tracing::instrument]
-    pub async fn fetch(&self) -> crate::Result<Channel> {
-        let content = reqwest::get(self.url()).await?.bytes().await?;
+    pub async fn fetch(&self, client: &ClientWithMiddleware) -> crate::Result<Channel> {
+        let content = client.get(self.url()).send().await?.bytes().await?;
         let channel = Channel::read_from(&content[..])?;
         channel.validate()?;
         Ok(channel)
