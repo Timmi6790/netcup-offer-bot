@@ -26,53 +26,7 @@ RSS feed listener to discord webhook for https://www.netcup-sonderangebote.de/
 
 ### Installation - Helm chart
 
-1. Clone the helm chart from the repo
-
-2. Overwrite values
-
-```yaml
-image:
-  repository: timmi6790/netcup-offer-bot
-  tag: latest
-  pullPolicy: IfNotPresent
-
-env:
-  # Optional sentry url
-  sentryDns: ""
-  # Discord webhook url
-  webHook: ""
-  # Check interval in seconds
-  checkInterval: 180
-  # Optional log level
-  logLevel: info
-
-persistence:
-  data:
-    accessMode: ReadWriteOnce
-    size: 10Mi
-
-metrics:
-  enabled: false
-  port: 9184
-  serviceMonitor:
-    interval: 1m
-    scrapeTimeout: 30s
-
-resources:
-  limits:
-    memory: 10Mi
-  requests:
-    memory: 5Mi
-```
-
-3. Install the helm chart
-
-```shell
-helm install netcup-offer-bot \
-  --create-namespace \
-  --namespace netcup \
-  netcup-offer-bot
-```
+- [Helm chart](https://github.com/Timmi6790/helm-charts/tree/main/charts/netcup-offer-bot)
 
 ### Installation - Docker
 
