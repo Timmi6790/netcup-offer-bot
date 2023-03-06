@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::{SpanBackendWithUrl, TracingMiddleware};
+use secrecy::ExposeSecret;
 use sentry::ClientInitGuard;
 use strum::IntoEnumIterator;
 use tokio::time;
@@ -116,7 +117,7 @@ impl FeedChecker {
             .with(TracingMiddleware::<SpanBackendWithUrl>::new())
             .build();
         let states = FeedStates::load().unwrap();
-        let hook = DiscordWebhook::new(&config.discord_webhook_url);
+        let hook = DiscordWebhook::new(config.discord_webhook_url.expose_secret());
 
         Self {
             client,

@@ -1,3 +1,4 @@
+use secrecy::Secret;
 use std::env;
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -13,7 +14,7 @@ const DEFAULT_METRIC_IP: &str = "127.0.0.1";
 const DEFAULT_METRIC_PORT: u16 = 9184;
 
 pub struct Config {
-    pub discord_webhook_url: String,
+    pub discord_webhook_url: Secret<String>,
     pub check_interval: Duration,
     pub metric_socket: SocketAddr,
 }
@@ -29,7 +30,7 @@ impl Config {
     }
 
     pub fn from_env() -> crate::Result<Self> {
-        let discord_webhook_url = Config::get_env(ENV_WEB_HOOK)?;
+        let discord_webhook_url = Secret::new(Config::get_env(ENV_WEB_HOOK)?);
         let check_interval = Config::get_env(ENV_CHECK_INTERVAL)?.parse::<u64>()?;
         let check_interval = Duration::from_secs(check_interval);
 
@@ -59,6 +60,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use secrecy::ExposeSecret;
 
     const CORRECT_WEB_HOOK: &str = "https://discord.com/api/webhooks/";
     const CORRECT_CHECK_INTERVAL: &str = "42";
@@ -85,7 +87,7 @@ mod tests {
                 assert!(result.is_ok());
 
                 let config = result.unwrap();
-                assert_eq!(config.discord_webhook_url, CORRECT_WEB_HOOK);
+                assert_eq!(config.discord_webhook_url.expose_secret(), CORRECT_WEB_HOOK);
                 assert_eq!(
                     config.check_interval,
                     Duration::from_secs(CORRECT_CHECK_INTERVAL.parse().unwrap())
@@ -108,7 +110,7 @@ mod tests {
                 assert!(result.is_ok());
 
                 let config = result.unwrap();
-                assert_eq!(config.discord_webhook_url, CORRECT_WEB_HOOK);
+                assert_eq!(config.discord_webhook_url.expose_secret(), CORRECT_WEB_HOOK);
                 assert_eq!(
                     config.check_interval,
                     Duration::from_secs(CORRECT_CHECK_INTERVAL.parse().unwrap())
