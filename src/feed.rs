@@ -1,8 +1,8 @@
 use std::fmt;
 
 use reqwest_middleware::ClientWithMiddleware;
-use rss::Channel;
 use rss::validation::Validate;
+use rss::Channel;
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 

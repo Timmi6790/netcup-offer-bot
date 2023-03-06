@@ -1,7 +1,8 @@
-use secrecy::Secret;
 use std::env;
 use std::net::SocketAddr;
 use std::time::Duration;
+
+use secrecy::Secret;
 
 use crate::error::Error;
 
@@ -59,8 +60,9 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use secrecy::ExposeSecret;
+
+    use super::*;
 
     const CORRECT_WEB_HOOK: &str = "https://discord.com/api/webhooks/";
     const CORRECT_CHECK_INTERVAL: &str = "42";
