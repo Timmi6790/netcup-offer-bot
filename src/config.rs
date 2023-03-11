@@ -1,4 +1,3 @@
-use std::env;
 use std::net::SocketAddr;
 use std::time::Duration;
 
@@ -6,55 +5,60 @@ use secrecy::Secret;
 
 use crate::error::Error;
 
-const ENV_WEB_HOOK: &str = "WEB_HOOK";
-const ENV_CHECK_INTERVAL: &str = "CHECK_INTERVAL";
-const ENV_METRIC_IP: &str = "METRIC_IP";
-const ENV_METRIC_PORT: &str = "METRIC_PORT";
-
 const DEFAULT_METRIC_IP: &str = "127.0.0.1";
 const DEFAULT_METRIC_PORT: u16 = 9184;
 
+#[derive(Debug, serde::Deserialize)]
+struct RawConfig {
+    web_hook: Secret<String>,
+    check_interval: u64,
+    metric_ip: Option<String>,
+    metric_port: Option<u16>,
+}
+
+#[derive(Debug)]
 pub struct Config {
     pub discord_webhook_url: Secret<String>,
     pub check_interval: Duration,
     pub metric_socket: SocketAddr,
 }
 
-impl Config {
-    fn get_env(name: &str) -> crate::Result<String> {
-        env::var(name).map_err(|e| match e {
-            env::VarError::NotPresent => {
-                Error::ConfigVar(format!("Missing environment variable {name}"))
-            }
-            e => Error::ConfigVar(e.to_string()),
-        })
-    }
+impl TryFrom<RawConfig> for Config {
+    type Error = crate::Error;
 
-    pub fn from_env() -> crate::Result<Self> {
-        let discord_webhook_url = Secret::new(Config::get_env(ENV_WEB_HOOK)?);
-        let check_interval = Config::get_env(ENV_CHECK_INTERVAL)?.parse::<u64>()?;
-        let check_interval = Duration::from_secs(check_interval);
-
-        let metric_ip =
-            Config::get_env(ENV_METRIC_IP).unwrap_or_else(|_| DEFAULT_METRIC_IP.to_string());
-        let metric_port = Config::get_env(ENV_METRIC_PORT)
-            .unwrap_or_else(|_| DEFAULT_METRIC_PORT.to_string())
-            .parse::<u16>()?;
+    fn try_from(value: RawConfig) -> Result<Self, Self::Error> {
+        let check_interval = Duration::from_secs(value.check_interval);
+        let metric_ip = value
+            .metric_ip
+            .unwrap_or_else(|| DEFAULT_METRIC_IP.to_string());
+        let metric_port = value.metric_port.unwrap_or(DEFAULT_METRIC_PORT);
         let metric_ip = match metric_ip.parse::<std::net::IpAddr>() {
             Ok(ip) => ip,
             Err(_) => {
                 return Err(Error::ConfigVar(format!(
-                    "Invalid {ENV_METRIC_IP} address: {metric_ip}"
+                    "Invalid metric ip address: {metric_ip}"
                 )));
             }
         };
-        let metric_socket = SocketAddr::new(metric_ip, metric_port);
 
+        let metric_socket = SocketAddr::new(metric_ip, metric_port);
         Ok(Self {
-            discord_webhook_url,
+            discord_webhook_url: value.web_hook,
             check_interval,
             metric_socket,
         })
+    }
+}
+
+impl Config {
+    pub fn get_configurations() -> crate::Result<Self> {
+        config::Config::builder()
+            .add_source(config::Environment::default())
+            .build()
+            .map_err(|e| Error::custom(format!("Can't parse config: {e}")))?
+            .try_deserialize::<RawConfig>()
+            .map_err(|e| Error::custom(format!("Failed to deserialize configuration: {e}")))?
+            .try_into()
     }
 }
 
@@ -64,6 +68,11 @@ mod tests {
 
     use super::*;
 
+    const ENV_WEB_HOOK: &str = "WEB_HOOK";
+    const ENV_CHECK_INTERVAL: &str = "CHECK_INTERVAL";
+    const ENV_METRIC_IP: &str = "METRIC_IP";
+    const ENV_METRIC_PORT: &str = "METRIC_PORT";
+
     const CORRECT_WEB_HOOK: &str = "https://discord.com/api/webhooks/";
     const CORRECT_CHECK_INTERVAL: &str = "42";
     const CORRECT_METRIC_IP: &str = "127.0.0.1";
@@ -72,7 +81,7 @@ mod tests {
     #[test]
     fn test_from_env_missing_env() {
         temp_env::with_vars_unset(vec![ENV_WEB_HOOK, ENV_CHECK_INTERVAL], || {
-            let result = Config::from_env();
+            let result = Config::get_configurations();
             assert!(result.is_err());
         });
     }
@@ -85,7 +94,7 @@ mod tests {
                 (ENV_CHECK_INTERVAL, Some(CORRECT_CHECK_INTERVAL)),
             ],
             || {
-                let result = Config::from_env();
+                let result = Config::get_configurations();
                 assert!(result.is_ok());
 
                 let config = result.unwrap();
@@ -108,7 +117,7 @@ mod tests {
                 (ENV_METRIC_PORT, Some(CORRECT_METRIC_PORT)),
             ],
             || {
-                let result = Config::from_env();
+                let result = Config::get_configurations();
                 assert!(result.is_ok());
 
                 let config = result.unwrap();
@@ -136,7 +145,7 @@ mod tests {
                 (ENV_CHECK_INTERVAL, Some("d")),
             ],
             || {
-                let result = Config::from_env();
+                let result = Config::get_configurations();
                 assert!(result.is_err());
             },
         );
@@ -152,7 +161,7 @@ mod tests {
                 (ENV_METRIC_PORT, Some(CORRECT_METRIC_PORT)),
             ],
             || {
-                let result = Config::from_env();
+                let result = Config::get_configurations();
                 assert!(result.is_err());
             },
         );
@@ -168,7 +177,7 @@ mod tests {
                 (ENV_METRIC_PORT, Some("abcde")),
             ],
             || {
-                let result = Config::from_env();
+                let result = Config::get_configurations();
                 assert!(result.is_err());
             },
         );
@@ -179,7 +188,7 @@ mod tests {
         temp_env::with_vars(
             vec![(ENV_WEB_HOOK, Some("⛷")), (ENV_CHECK_INTERVAL, Some("⛷"))],
             || {
-                let result = Config::from_env();
+                let result = Config::get_configurations();
                 assert!(result.is_err());
             },
         );

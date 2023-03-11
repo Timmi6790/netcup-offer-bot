@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
     // Prevents the process from exiting until all events are sent
     let _sentry = setup_sentry(dns);
 
-    let config = Config::from_env()?;
+    let config = Config::get_configurations()?;
 
     setup_metrics(&config.metric_socket)?;
 
