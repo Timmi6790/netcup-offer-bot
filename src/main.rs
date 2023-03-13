@@ -2,11 +2,11 @@
 extern crate tracing;
 
 use netcup_offer_bot::config::Config;
+use netcup_offer_bot::metrics::Metrics;
 use netcup_offer_bot::FeedChecker;
 use netcup_offer_bot::Result;
 use sentry::ClientInitGuard;
 use std::env;
-use std::net::SocketAddr;
 use std::str::FromStr;
 use tokio::time;
 use tokio_stream::wrappers::IntervalStream;
@@ -33,7 +33,9 @@ async fn main() -> Result<()> {
 
     let config = Config::get_configurations()?;
 
-    setup_metrics(&config.metric_socket)?;
+    // Setup metrics
+    let metrics = Metrics::new(config.metric_socket);
+    let metrics_run = metrics.run_until_stopped().await?;
 
     info!("Starting feed bot");
     let mut checker = FeedChecker::from_config(&config);
@@ -41,6 +43,8 @@ async fn main() -> Result<()> {
     while let Some(_ts) = stream.next().await {
         checker.check_feeds().await;
     }
+
+    metrics_run.await??;
 
     Ok(())
 }
@@ -80,9 +84,4 @@ fn setup_sentry(dns: Option<String>) -> Option<ClientInitGuard> {
             ..Default::default()
         },
     )))
-}
-
-fn setup_metrics(socket: &SocketAddr) -> Result<()> {
-    prometheus_exporter::start(*socket)?;
-    Ok(())
 }

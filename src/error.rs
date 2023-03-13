@@ -20,10 +20,6 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("Serde error")]
     Serde(#[from] serde_json::Error),
-    #[error("Prometheus error")]
-    Prometheus(#[from] prometheus::Error),
-    #[error("Prometheus exporter error")]
-    PrometheusExport(#[from] prometheus_exporter::Error),
     #[error("Custom: {0}")]
     Custom(String),
 }

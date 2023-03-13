@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate tracing;
 
+use opentelemetry::{Context, KeyValue};
 use std::fmt::Debug;
 
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
@@ -19,7 +20,7 @@ mod discord_webhook;
 mod error;
 mod feed;
 mod feed_state;
-mod metrics;
+pub mod metrics;
 
 pub type Result<T> = anyhow::Result<T, Error>;
 
@@ -79,8 +80,12 @@ impl FeedChecker {
                 debug!("Found {} new items", items.len());
 
                 // Increase metrics
-                let counter = metrics::FEED_COUNTER.with_label_values(&[feed.name()]);
-                counter.inc_by(items.len() as u64);
+                let cx = Context::current();
+                metrics::FEED_COUNTER.add(
+                    &cx,
+                    items.len() as u64,
+                    &[KeyValue::new("feed", feed.name().to_string())],
+                );
 
                 // Send feed to discord
                 for item in items {
