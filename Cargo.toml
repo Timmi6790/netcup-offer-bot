@@ -38,7 +38,7 @@ config = "0.13.3"
 
 [dev-dependencies]
 temp-env = "0.3.4"
-tempfile = "3.5.0"
+tempfile = "3.6.0"
 serde_test = "1.0.163"
 
 [profile.release]
