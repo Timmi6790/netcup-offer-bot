@@ -15,7 +15,7 @@ name = "netcup-offer-bot"
 anyhow = { version = "1.0.71", features = ["backtrace"] }
 thiserror = "1.0"
 backtrace = "0.3.67"
-sentry = { version = "0.31.3", features = ["anyhow", "debug-images", "reqwest", "backtrace", "tracing", "profiling"] }
+sentry = { version = "0.31.4", features = ["anyhow", "debug-images", "reqwest", "backtrace", "tracing", "profiling"] }
 chrono = { version = "0.4.26", default-features = false, features = ["clock", "std", "wasmbind", "serde"] }
 webhook = "2.1.2"
 rss = { version = "2.0.4", features = ["validation"] }
