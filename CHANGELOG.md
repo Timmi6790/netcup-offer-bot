@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.7](https://github.com/Timmi6790/netcup-offer-bot/compare/1.2.6...1.2.7) (2023-06-22)
+
+
+### Bug Fixes
+
+* docker image release on github release ([02388ea](https://github.com/Timmi6790/netcup-offer-bot/commit/02388ea5ae982ca334c4478b1833460dca666251))
+
 ## [1.2.6](https://github.com/Timmi6790/netcup-offer-bot/compare/1.2.5...1.2.6) (2023-06-21)
 
 
