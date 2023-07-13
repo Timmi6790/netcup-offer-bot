@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.10](https://github.com/Timmi6790/netcup-offer-bot/compare/1.2.9...1.2.10) (2023-07-13)
+
+
+### Bug Fixes
+
+* adjust release-please action ([0a7277e](https://github.com/Timmi6790/netcup-offer-bot/commit/0a7277e7b249e2c8badc9d40bb8cb0960ba01492))
+* fix invalid release tag ([41a8d46](https://github.com/Timmi6790/netcup-offer-bot/commit/41a8d46b58639ae3808456f010f6a15bfca7934f))
+
 ## [1.2.9](https://github.com/Timmi6790/netcup-offer-bot/compare/1.2.8...1.2.9) (2023-07-13)
 
 
