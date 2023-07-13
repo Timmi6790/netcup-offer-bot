@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.11](https://github.com/Timmi6790/netcup-offer-bot/compare/1.2.10...1.2.11) (2023-07-13)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([acc06e2](https://github.com/Timmi6790/netcup-offer-bot/commit/acc06e2f3edc62ea1c2f2bbf9267b0d0dd13c048))
+
 ## [1.2.10](https://github.com/Timmi6790/netcup-offer-bot/compare/1.2.9...1.2.10) (2023-07-13)
 
 
