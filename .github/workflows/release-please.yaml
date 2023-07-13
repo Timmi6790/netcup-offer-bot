@@ -43,6 +43,11 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         with:
           images: timmi6790/netcup-offer-bot
+          tags: |
+            type=raw,value=${{ steps.release.outputs.tag_name }}
+            type=raw,value=${{ steps.release.outputs.major }}
+            type=raw,value=${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}
+            type=raw,value=latest
 
       - name: Build and push
         uses: docker/build-push-action@v4
