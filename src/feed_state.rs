@@ -46,7 +46,7 @@ impl FeedStates {
     }
 
     pub fn get_feed_or_create(&mut self, feed: &Feed) -> &mut FeedState {
-        self.feeds.entry(*feed).or_insert_with(FeedState::default)
+        self.feeds.entry(*feed).or_default()
     }
 
     #[tracing::instrument]
