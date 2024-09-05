@@ -7,7 +7,7 @@ pub enum Error {
     #[error("Config error: {0}")]
     ConfigVar(String),
     #[error("Parser error")]
-    ParseError(#[from] std::num::ParseIntError),
+    Parse(#[from] std::num::ParseIntError),
     #[error("Rss: {0}")]
     Rss(String),
     #[error("Reqwest error")]
@@ -15,9 +15,9 @@ pub enum Error {
     #[error("Reqwest middleware error")]
     ReqwestMiddleware(#[from] reqwest_middleware::Error),
     #[error("Tokio error")]
-    TokioJoinError(#[from] tokio::task::JoinError),
+    TokioJoin(#[from] tokio::task::JoinError),
     #[error("IO error")]
-    IoError(#[from] std::io::Error),
+    IO(#[from] std::io::Error),
     #[error("Serde error")]
     Serde(#[from] serde_json::Error),
     #[error("Prometheus error")]
