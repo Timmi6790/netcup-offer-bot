@@ -74,8 +74,6 @@ fn setup_sentry(dns: Option<String>) -> Option<ClientInitGuard> {
             release: sentry::release_name!(),
             auto_session_tracking: true,
             traces_sample_rate: 0.2,
-            enable_profiling: true,
-            profiles_sample_rate: 0.2,
             attach_stacktrace: true,
             ..Default::default()
         },
