@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.12](https://github.com/Timmi6790/netcup-offer-bot/compare/1.2.11...v1.2.12) (2024-09-05)
+
+
+### Bug Fixes
+
+* clippy linter warnings ([4a17512](https://github.com/Timmi6790/netcup-offer-bot/commit/4a175125f3e01700b2ad69656ffa3ad421681336))
+* **deps:** update all non-major dependencies ([89d4072](https://github.com/Timmi6790/netcup-offer-bot/commit/89d4072f823d4931419fb61d5e79fc22ef87da3d))
+* remove removed sentry feature ([075db16](https://github.com/Timmi6790/netcup-offer-bot/commit/075db16f67e814803f83bec1157de19850c267de))
+
 ## [1.2.11](https://github.com/Timmi6790/netcup-offer-bot/compare/1.2.10...1.2.11) (2023-07-13)
 
 
