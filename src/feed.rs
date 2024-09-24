@@ -20,7 +20,7 @@ impl Feed {
 
     pub fn url(&self) -> &str {
         match self {
-            Feed::Netcup => "https://www.netcup-sonderangebote.de/feed/",
+            Feed::Netcup => "https://www.netcup.com/special-offers.xml?locale=de",
         }
     }
 
