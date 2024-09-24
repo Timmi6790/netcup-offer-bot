@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Timmi6790/netcup-offer-bot/compare/v1.2.12...v1.3.0) (2024-09-24)
+
+
+### Features
+
+* update to new URL ([#66](https://github.com/Timmi6790/netcup-offer-bot/issues/66)) ([9ba99b5](https://github.com/Timmi6790/netcup-offer-bot/commit/9ba99b5a80c058f10b028f65cede04e13f53257d))
+
 ## [1.2.12](https://github.com/Timmi6790/netcup-offer-bot/compare/1.2.11...v1.2.12) (2024-09-05)
 
 
