@@ -22,7 +22,7 @@
 
 ## About The Project
 
-RSS feed listener to discord webhook for https://www.netcup-sonderangebote.de/
+RSS feed listener to discord webhook for https://www.netcup.com/de/deals
 
 ### Installation - Helm chart
 
