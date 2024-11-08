@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/Timmi6790/netcup-offer-bot/compare/v1.3.0...v1.3.1) (2024-11-08)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate thiserror to v2 ([#69](https://github.com/Timmi6790/netcup-offer-bot/issues/69)) ([381470e](https://github.com/Timmi6790/netcup-offer-bot/commit/381470ea9621ad28b2143aeaa5daa592344b41bf))
+
 ## [1.3.0](https://github.com/Timmi6790/netcup-offer-bot/compare/v1.2.12...v1.3.0) (2024-09-24)
 
 
