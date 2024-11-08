@@ -44,4 +44,3 @@ serde_test = "1.0.171"
 [profile.release]
 lto = true
 codegen-units = 1
-debug = true
