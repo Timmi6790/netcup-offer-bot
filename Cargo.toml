@@ -42,5 +42,6 @@ tempfile = "3.6.0"
 serde_test = "1.0.171"
 
 [profile.release]
+strip = true
 lto = true
 codegen-units = 1
