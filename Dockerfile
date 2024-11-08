@@ -1,3 +1,6 @@
+ARG BINDARY_NAME=netcup-offer-bot
+ARG USER=runner
+
 FROM clux/muslrust:stable AS chef
 USER root
 RUN cargo install cargo-chef
@@ -14,15 +17,21 @@ COPY . .
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
 FROM alpine AS env
+
+ARG USER
+
 RUN apk add --no-cache ca-certificates
 RUN adduser \
     --disabled-password \
     --gecos "" \
     --home "/app" \
     --shell "/sbin/nologin" \
-    "1000"
+    "$USER"
 
 FROM scratch AS runtime
+
+ARG BINDARY_NAME
+ARG USER
 
 ARG version=unknown
 ARG release=unreleased
@@ -32,12 +41,13 @@ LABEL version=${version} \
 
 COPY --from=env /etc/passwd /etc/passwd
 COPY --from=env /etc/group /etc/group
-COPY --from=env --chown=1000:1000 /app /app
 COPY --from=env /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-WORKDIR /app
-COPY --from=builder --chown=root:root /app/target/x86_64-unknown-linux-musl/release/netcup-offer-bot ./app
+COPY --from=env --chown=$USER:$USER /app /app
 
-USER 1000:1000
+WORKDIR /app
+COPY --from=builder --chown=root:root /app/target/x86_64-unknown-linux-musl/release/$BINDARY_NAME ./app
+
+USER $USER:$USER
 
 CMD ["./app"]
