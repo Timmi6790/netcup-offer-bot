@@ -50,4 +50,4 @@ COPY --from=builder --chown=root:root /app/target/x86_64-unknown-linux-musl/rele
 
 USER $USER:$USER
 
-CMD ["./app"]
+ENTRYPOINT ["./app"]
