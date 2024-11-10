@@ -1,16 +1,14 @@
+use crate::error::Error;
+use secrecy::SecretBox;
 use std::net::SocketAddr;
 use std::time::Duration;
-
-use secrecy::Secret;
-
-use crate::error::Error;
 
 const DEFAULT_METRIC_IP: &str = "127.0.0.1";
 const DEFAULT_METRIC_PORT: u16 = 9184;
 
 #[derive(Debug, serde::Deserialize)]
 struct RawConfig {
-    web_hook: Secret<String>,
+    web_hook: SecretBox<String>,
     check_interval: u64,
     metric_ip: Option<String>,
     metric_port: Option<u16>,
@@ -18,7 +16,7 @@ struct RawConfig {
 
 #[derive(Debug)]
 pub struct Config {
-    pub discord_webhook_url: Secret<String>,
+    pub discord_webhook_url: SecretBox<String>,
     pub check_interval: Duration,
     pub metric_socket: SocketAddr,
 }
