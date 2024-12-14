@@ -15,13 +15,13 @@ name = "netcup-offer-bot"
 anyhow = { version = "1.0.71", features = ["backtrace"] }
 thiserror = "2.0"
 backtrace = "0.3.68"
-sentry = { version = "0.34.0", features = ["anyhow", "debug-images", "reqwest", "backtrace", "tracing"] }
+sentry = { version = "0.35.0", features = ["anyhow", "debug-images", "reqwest", "backtrace", "tracing"] }
 chrono = { version = "0.4.26", default-features = false, features = ["clock", "std", "wasmbind", "serde"] }
 webhook = "2.1.2"
 rss = { version = "2.0.4", features = ["validation"] }
 reqwest = { version = "0.12.0" }
-reqwest-middleware = "0.3.0"
-reqwest-tracing = "0.5.0"
+reqwest-middleware = "0.4.0"
+reqwest-tracing = "0.5.5"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1.14"
 tracing = "0.1.37"
