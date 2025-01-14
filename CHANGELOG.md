@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.1](https://github.com/Timmi6790/netcup-offer-bot/compare/v1.3.0...v1.3.1) (2025-01-14)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([e8dcca2](https://github.com/Timmi6790/netcup-offer-bot/commit/e8dcca2bedd235b50011b19e388e0c59cb36485f))
+* **deps:** update all non-major dependencies ([#79](https://github.com/Timmi6790/netcup-offer-bot/issues/79)) ([b3f82d7](https://github.com/Timmi6790/netcup-offer-bot/commit/b3f82d7630c27fe3a7e9cf172abde9f5d059bdf0))
+* **deps:** update all non-major dependencies ([#83](https://github.com/Timmi6790/netcup-offer-bot/issues/83)) ([9940d6d](https://github.com/Timmi6790/netcup-offer-bot/commit/9940d6d231d458070c1de4ed7d7b1951fdea2053))
+* **deps:** update all non-major dependencies ([#86](https://github.com/Timmi6790/netcup-offer-bot/issues/86)) ([88e01cd](https://github.com/Timmi6790/netcup-offer-bot/commit/88e01cdedc69dc79ae41ac037b2ba32a3257868a))
+* **deps:** update rust crate thiserror to v2 ([#69](https://github.com/Timmi6790/netcup-offer-bot/issues/69)) ([381470e](https://github.com/Timmi6790/netcup-offer-bot/commit/381470ea9621ad28b2143aeaa5daa592344b41bf))
+* migrate secrecy to new type ([503057a](https://github.com/Timmi6790/netcup-offer-bot/commit/503057a103a6a95e4bd6dbcc52eb44a4c3d2e0a7))
+
 ## [1.3.0](https://github.com/Timmi6790/netcup-offer-bot/compare/v1.2.12...v1.3.0) (2024-09-24)
 
 
