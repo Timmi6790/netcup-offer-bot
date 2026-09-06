@@ -41,23 +41,22 @@ that changes one without the other.
 
 #[cfg(feature = "config-schema")]
 pub mod contract;
+mod level;
 mod loader;
 mod sentry;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::str::FromStr;
 use std::time::Duration;
 
 use secrecy::SecretString;
 use serde::{Deserialize, Deserializer};
-use tracing::Level;
 
+pub use level::{LogLevel, SentryLevel};
 pub use loader::{ConfigError, explain, terrace};
-pub use sentry::{SentryConfig, SentryLevel};
+pub use sentry::SentryConfig;
 
 const DEFAULT_METRIC_IP: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 const DEFAULT_METRIC_PORT: u16 = 9184;
-const DEFAULT_LOG_LEVEL: Level = Level::INFO;
 
 /// Everything the process reads before it starts.
 // Not rustdoc: the two derives behind `config-schema` are the documentation job's, and a caller
@@ -231,33 +230,33 @@ impl MetricsConfig {
 }
 
 /// Logging and error reporting.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 // As [`Config`]. `sentry_dsn` below is *declared* rather than unknown, so it keeps reaching its
 // own error message instead of the generic one this produces.
 #[serde(default, deny_unknown_fields)]
-#[cfg_attr(feature = "config-schema", derive(serde::Serialize))]
+#[cfg_attr(
+    feature = "config-schema",
+    derive(serde::Serialize, terrace_config::schema::Describe)
+)]
 #[allow(
     clippy::manual_non_exhaustive,
     reason = "`sentry_dsn` is a removed key kept to refuse it, not a marker sealing the struct"
 )]
 pub struct TelemetryConfig {
-    /// The maximum verbosity that reaches stdout: `TRACE`, `DEBUG`, `INFO`, `WARN` or `ERROR`,
-    /// in any case.
+    /// The maximum verbosity that reaches stdout: `error`, `warn`, `info`, `debug` or `trace`.
     ///
-    /// Parsed at boot so an unusable value fails the load rather than the first log line.
-    /// `DEBUG` and `TRACE` additionally print which layer supplied each configuration key.
-    #[serde(
-        deserialize_with = "deserialize_level",
-        serialize_with = "serialize_level"
-    )]
-    pub log_level: Level,
+    /// Read at boot, so a spelling this is not fails the load rather than the first log line.
+    /// `debug` and `trace` additionally print which layer supplied each configuration key.
+    // The variant list of [`LogLevel`] is the accepted set, and `config(values)` publishes that
+    // same list: there is no parser between the two for them to disagree over.
+    #[cfg_attr(feature = "config-schema", config(values))]
+    pub log_level: LogLevel,
     /// Error reporting and performance tracing. Off unless configured; see [`SentryConfig`].
     ///
     /// Nested here rather than beside `metrics` because it is a second sink for the same
     /// `tracing` stream `log_level` governs, not a second exporter.
-    // No `config(nested)`: this type describes itself by hand below, and a helper attribute
-    // without the derive that declares it is a compile error.
     #[serde(default)]
+    #[cfg_attr(feature = "config-schema", config(nested))]
     pub sentry: SentryConfig,
     /// The key `telemetry.sentry.dsn` replaced. Supplying it fails the boot.
     ///
@@ -265,79 +264,12 @@ pub struct TelemetryConfig {
     /// upgrade that renamed the key: the old variable would be ignored, `telemetry.sentry.enabled`
     /// would default to `false`, and the first anyone heard of it would be an incident nobody got
     /// an issue for. This field is what turns that into a boot failure naming the replacement.
-    // Not rustdoc: the hand-written `Describe` below leaves it out, as `config(skip)` did. A key
-    // that exists only to be refused is not part of the configuration surface a chart is checked
-    // against — the error message is where it belongs, and it reaches the one person who set it.
+    // Not rustdoc: `config(skip)` keeps it out of the schema. A key that exists only to be
+    // refused is not part of the configuration surface a chart is checked against — the error
+    // message is where it belongs, and it reaches the one person who set it.
     #[serde(skip_serializing, deserialize_with = "refuse_removed_sentry_dsn")]
+    #[cfg_attr(feature = "config-schema", config(skip))]
     sentry_dsn: (),
-}
-
-impl Default for TelemetryConfig {
-    fn default() -> Self {
-        Self {
-            log_level: DEFAULT_LOG_LEVEL,
-            sentry: SentryConfig::default(),
-            sentry_dsn: (),
-        }
-    }
-}
-
-/// The keys of [`TelemetryConfig`], written out because `log_level` has no honest derived form.
-///
-/// `#[derive(Describe)]` refuses a field whose type it cannot describe, and [`Level`] is one:
-/// it is foreign, so the orphan rule puts both `Values` and `Describe` out of reach here, and
-/// the set `deserialize_level` below accepts is not a fixed list of spellings — it hands the
-/// string to [`Level::from_str`], which matches case-insensitively and also takes `1` through
-/// `5`. A `config(values("trace", …))` list would therefore publish a schema refusing `INFO`
-/// and `3`, both of which load, and `config(skip)` would drop a key operators set. What is true
-/// is that the key exists, is optional, and holds a `Level` — which is the row the derive built,
-/// and the row this builds.
-///
-/// The prose below is duplicated from the field's `///` comment because a derive reads those and
-/// a hand-written impl cannot. Change one and change the other.
-#[cfg(feature = "config-schema")]
-impl terrace_config::schema::Describe for TelemetryConfig {
-    fn describe(sink: &mut terrace_config::schema::Sink) {
-        use terrace_config::schema::{Describe, Leaf};
-
-        // First, so the level it closes is this type's own rather than one a field pushed —
-        // which is the order the derive emits `#[serde(deny_unknown_fields)]` in.
-        sink.deny_unknown_fields();
-        sink.leaf(Leaf {
-            name: "log_level",
-            docs: "The maximum verbosity that reaches stdout: `TRACE`, `DEBUG`, `INFO`, `WARN` \
-                   or `ERROR`,\nin any case.\n\nParsed at boot so an unusable value fails the \
-                   load rather than the first log line.\n`DEBUG` and `TRACE` additionally print \
-                   which layer supplied each configuration key.",
-            ty: Some("Level"),
-            values: None,
-            // No interval: a level is not a number here. The text form it is supplied as is a
-            // name, and `1`–`5` are accepted as an alias for those names rather than as a range.
-            bounds: None,
-            aliases: &[],
-            note: None,
-            required: false,
-            secret: false,
-        });
-        sink.nested("sentry", <SentryConfig as Describe>::describe);
-        // `sentry_dsn` is deliberately absent, exactly as `config(skip)` left it.
-    }
-}
-
-/// Parses a [`Level`] from any layer's string form.
-///
-/// The error names the value and the accepted set, because the previous system's failure —
-/// `LOG_LEVEL=FATAL`, a level `tracing` does not have — read only as "invalid level".
-fn deserialize_level<'de, D>(deserializer: D) -> Result<Level, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let raw = String::deserialize(deserializer)?;
-    Level::from_str(&raw).map_err(|_| {
-        serde::de::Error::custom(format!(
-            "invalid log level `{raw}`, expected one of TRACE, DEBUG, INFO, WARN, ERROR"
-        ))
-    })
 }
 
 /// Refuses the removed `telemetry.sentry_dsn` key, naming what replaced it.
@@ -361,21 +293,4 @@ where
          switches Sentry on by itself: set `telemetry.sentry.enabled` as well, then remove \
          `telemetry.sentry_dsn`",
     ))
-}
-
-/// Renders a [`Level`] the way every layer spells it.
-///
-/// The inverse of [`deserialize_level`], and reachable only from the schema generator: nothing
-/// in this process serialises a `Config`, and `tracing::Level` has no `Serialize` impl of its
-/// own for either of them to use.
-#[cfg(feature = "config-schema")]
-#[allow(
-    clippy::trivially_copy_pass_by_ref,
-    reason = "serde hands a `serialize_with` hook the field by reference"
-)]
-fn serialize_level<S>(level: &Level, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_str(level.as_str())
 }

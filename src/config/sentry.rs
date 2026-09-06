@@ -14,61 +14,8 @@
 
 use secrecy::SecretString;
 use serde::Deserialize;
-use tracing::Level;
 
-/// How much of the `tracing` stream one Sentry sink takes.
-///
-/// Ordered by severity, so a threshold names the *least* severe record it accepts: `warn` means
-/// `error` and `warn`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
-#[cfg_attr(
-    feature = "config-schema",
-    derive(serde::Serialize, terrace_config::schema::Describe)
-)]
-#[serde(rename_all = "lowercase")]
-pub enum SentryLevel {
-    /// Take nothing.
-    Off,
-    /// `error` only.
-    #[default]
-    Error,
-    /// `error` and `warn`.
-    Warn,
-    /// Down to `info`.
-    Info,
-    /// Down to `debug`.
-    Debug,
-    /// Everything.
-    Trace,
-}
-
-impl SentryLevel {
-    /// The least severe [`Level`] this threshold accepts, or `None` for [`Self::Off`].
-    ///
-    /// What the layer's own level filter is built from, so a record below the threshold is never
-    /// handed to Sentry's layer at all rather than handed over and dropped.
-    #[must_use]
-    pub fn threshold(self) -> Option<Level> {
-        match self {
-            Self::Off => None,
-            Self::Error => Some(Level::ERROR),
-            Self::Warn => Some(Level::WARN),
-            Self::Info => Some(Level::INFO),
-            Self::Debug => Some(Level::DEBUG),
-            Self::Trace => Some(Level::TRACE),
-        }
-    }
-
-    /// Whether a record at `level` is at least as severe as this threshold.
-    ///
-    /// [`Level`] orders `ERROR` lowest, so "at least as severe" is `<=`. Inverting it turns
-    /// `capture_level = "error"` into "capture everything", which is a bill rather than a
-    /// compile error.
-    #[must_use]
-    pub fn accepts(self, level: Level) -> bool {
-        self.threshold().is_some_and(|threshold| level <= threshold)
-    }
-}
+use super::SentryLevel;
 
 /// Sentry error reporting and performance tracing.
 ///
@@ -192,40 +139,6 @@ impl Default for SentryConfig {
 #[cfg(test)]
 mod tests {
     use super::{SentryConfig, SentryLevel};
-    use tracing::Level;
-
-    /// The inversion that a value assertion cannot catch: every level is "at least as severe as"
-    /// something, and getting the comparison the wrong way round turns the default threshold
-    /// into "capture everything".
-    #[test]
-    fn a_threshold_accepts_only_levels_at_least_as_severe() {
-        assert!(SentryLevel::Error.accepts(Level::ERROR));
-        assert!(!SentryLevel::Error.accepts(Level::WARN));
-        assert!(!SentryLevel::Error.accepts(Level::TRACE));
-
-        assert!(SentryLevel::Info.accepts(Level::ERROR));
-        assert!(SentryLevel::Info.accepts(Level::WARN));
-        assert!(SentryLevel::Info.accepts(Level::INFO));
-        assert!(!SentryLevel::Info.accepts(Level::DEBUG));
-
-        for level in [
-            Level::ERROR,
-            Level::WARN,
-            Level::INFO,
-            Level::DEBUG,
-            Level::TRACE,
-        ] {
-            assert!(!SentryLevel::Off.accepts(level));
-            assert!(SentryLevel::Trace.accepts(level));
-        }
-    }
-
-    #[test]
-    fn off_is_the_one_threshold_with_no_level() {
-        assert_eq!(SentryLevel::Off.threshold(), None);
-        assert_eq!(SentryLevel::Error.threshold(), Some(Level::ERROR));
-        assert_eq!(SentryLevel::Trace.threshold(), Some(Level::TRACE));
-    }
 
     /// The block a deployment that has never heard of it gets. Every one of these is a value
     /// that reaches a third party or decides whether anything does, so each is worth pinning

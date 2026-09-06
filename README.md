@@ -175,7 +175,7 @@ Nesting is `__`, because a single underscore is part of a field name. Case is fo
 | `feed.check_interval_secs` | `u64` | `NETCUP_OFFER_BOT_FEED__CHECK_INTERVAL_SECS` | — | required | Seconds between two RSS feed checks. |
 | `metrics.ip` | `IpAddr` | `NETCUP_OFFER_BOT_METRICS__IP` | `127.0.0.1` | — | Address the Prometheus exporter binds. `0.0.0.0` to reach it from outside the container. |
 | `metrics.port` | `u16` | `NETCUP_OFFER_BOT_METRICS__PORT` | `9184` | — | Port the Prometheus exporter listens on. |
-| `telemetry.log_level` | `Level` | `NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL` | `INFO` | — | The maximum verbosity that reaches stdout: `TRACE`, `DEBUG`, `INFO`, `WARN` or `ERROR`, in any case. |
+| `telemetry.log_level` | `LogLevel`: `error` \| `warn` \| `info` \| `debug` \| `trace` | `NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL` | `info` | — | The maximum verbosity that reaches stdout: `error`, `warn`, `info`, `debug` or `trace`. |
 | `telemetry.sentry.enabled` | `bool` | `NETCUP_OFFER_BOT_TELEMETRY__SENTRY__ENABLED` | `false` | — | Initialise the Sentry client. `false` installs no client, no panic hook and no layer, so every other key here is inert and nothing leaves the process. |
 | `telemetry.sentry.dsn` | `SecretString` | `NETCUP_OFFER_BOT_TELEMETRY__SENTRY__DSN` | unset | secret | Ingest URL, `https://<key>@<host>/<project>`. Required once `enabled` is set. |
 | `telemetry.sentry.environment` | `String` | `NETCUP_OFFER_BOT_TELEMETRY__SENTRY__ENVIRONMENT` | unset | — | Environment tag on every event. Defaults to `production`, or `development` for a debug build. |
@@ -190,7 +190,7 @@ Nesting is `__`, because a single underscore is part of a field name. Case is fo
 | `telemetry.sentry.shutdown_timeout_secs` | `u64` | `NETCUP_OFFER_BOT_TELEMETRY__SENTRY__SHUTDOWN_TIMEOUT_SECS` | `2` | — | How long process exit waits for queued events to drain. |
 | `telemetry.sentry.debug` | `bool` | `NETCUP_OFFER_BOT_TELEMETRY__SENTRY__DEBUG` | `false` | — | Print the SDK's own diagnostics to stderr. For proving a DSN works, not for running. |
 
-Run with `NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL=DEBUG` and the boot log names the layer every
+Run with `NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL=debug` and the boot log names the layer every
 key was read from. That is what answers "the `Secret` is mounted and the bot is still posting to
 the old webhook".
 

@@ -134,16 +134,36 @@
         "env": "NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL",
         "env_file": "NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL_FILE",
         "secrets_file": "telemetry__log_level",
-        "docs": "The maximum verbosity that reaches stdout: `TRACE`, `DEBUG`, `INFO`, `WARN` or `ERROR`,\nin any case.\n\nParsed at boot so an unusable value fails the load rather than the first log line.\n`DEBUG` and `TRACE` additionally print which layer supplied each configuration key.",
-        "ty": "Level",
-        "values": [],
-        "text_form": "unknown",
+        "docs": "The maximum verbosity that reaches stdout: `error`, `warn`, `info`, `debug` or `trace`.\n\nRead at boot, so a spelling this is not fails the load rather than the first log line.\n`debug` and `trace` additionally print which layer supplied each configuration key.",
+        "ty": "LogLevel",
+        "values": [
+          "error",
+          "warn",
+          "info",
+          "debug",
+          "trace"
+        ],
+        "constraint": {
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug",
+            "trace"
+          ],
+          "type": "string"
+        },
+        "text_constraint": {
+          "pattern": "^\\s*(error|warn|info|debug|trace)\\s*$",
+          "type": "string"
+        },
+        "text_form": "choice",
         "aliases": [],
         "env_aliases": [],
         "env_file_aliases": [],
         "secrets_file_aliases": [],
-        "default": "INFO",
-        "default_value": "INFO",
+        "default": "info",
+        "default_value": "info",
         "note": null,
         "required": false,
         "secret": false,
@@ -562,8 +582,16 @@
         "additionalProperties": false,
         "properties": {
           "log_level": {
-            "default": "INFO",
-            "description": "The maximum verbosity that reaches stdout: `TRACE`, `DEBUG`, `INFO`, `WARN` or `ERROR`,\nin any case.\n\nParsed at boot so an unusable value fails the load rather than the first log line.\n`DEBUG` and `TRACE` additionally print which layer supplied each configuration key."
+            "default": "info",
+            "description": "The maximum verbosity that reaches stdout: `error`, `warn`, `info`, `debug` or `trace`.\n\nRead at boot, so a spelling this is not fails the load rather than the first log line.\n`debug` and `trace` additionally print which layer supplied each configuration key.",
+            "enum": [
+              "error",
+              "warn",
+              "info",
+              "debug",
+              "trace"
+            ],
+            "type": "string"
           },
           "sentry": {
             "additionalProperties": false,

@@ -145,8 +145,9 @@ fn the_webhook_is_secret_and_required_and_carries_no_default() {
 }
 
 /// The defaults published in the document are the ones a process actually falls back to, read out
-/// of the real `Default` implementations. This is also what exercises `serialize_level`, whose
-/// output has to be a string the loader would accept back.
+/// of the real `Default` implementations. Every one of them is printed as a string the loader
+/// would accept back, which for an enum-valued key means the `serde` spelling rather than the
+/// variant name.
 #[test]
 fn the_published_defaults_are_the_ones_the_process_falls_back_to() {
     let contract = contract(app()).expect("the contract should build");
@@ -163,7 +164,7 @@ fn the_published_defaults_are_the_ones_the_process_falls_back_to() {
 
     assert_eq!(default_of("metrics.ip").as_deref(), Some("127.0.0.1"));
     assert_eq!(default_of("metrics.port").as_deref(), Some("9184"));
-    assert_eq!(default_of("telemetry.log_level").as_deref(), Some("INFO"));
+    assert_eq!(default_of("telemetry.log_level").as_deref(), Some("info"));
 }
 
 /// A pod carries names no image asked for. Declaring them is what lets the contract keep its

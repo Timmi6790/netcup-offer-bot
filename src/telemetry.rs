@@ -63,7 +63,7 @@ pub fn init(config: &TelemetryConfig) -> Result<TelemetryGuard> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::fmt::layer()
-                .with_filter(filter::LevelFilter::from_level(config.log_level)),
+                .with_filter(filter::LevelFilter::from(config.log_level)),
         )
         .with(sentry::tracing_layer(&config.sentry))
         .try_init()

@@ -18,7 +18,7 @@ extern crate tracing;
 
 use netcup_offer_bot::FeedChecker;
 use netcup_offer_bot::Result;
-use netcup_offer_bot::config::{self, Config};
+use netcup_offer_bot::config::{self, Config, LogLevel};
 use netcup_offer_bot::telemetry;
 use std::net::SocketAddr;
 use tokio::time;
@@ -58,8 +58,8 @@ async fn main() -> Result<()> {
 /// Assembled only at the levels that would print it, because it re-reads every layer to build
 /// it. A failure is not fatal: the process has already loaded the configuration it needs, and
 /// losing the explanation of it is not a reason to refuse to start.
-fn log_configuration_layers(level: tracing::Level) {
-    if level < tracing::Level::DEBUG {
+fn log_configuration_layers(level: LogLevel) {
+    if level < LogLevel::Debug {
         return;
     }
 
