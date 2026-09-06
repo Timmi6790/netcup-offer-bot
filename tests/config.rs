@@ -155,6 +155,63 @@ fn the_removed_sentry_dsn_key_fails_the_load() {
     });
 }
 
+/// A key nobody declared fails the load rather than being dropped.
+///
+/// The quiet failure this replaces: `smaple_rate` in a chart's `ConfigMap` is a volume cap that
+/// was never applied, and the boot said nothing about it. The contract already published
+/// `additionalProperties: false` at every level, so this is the loader catching up with the
+/// document rather than a new claim about the configuration surface.
+#[test]
+fn a_misspelt_key_fails_the_load() {
+    harness().run(|jail| {
+        jail.config(
+            "[discord]\n\
+             webhook_url = \"https://discord.com/api/webhooks/toml\"\n\
+             [feed]\n\
+             check_interval_secs = 180\n\
+             [telemetry.sentry]\n\
+             smaple_rate = 0.5\n",
+        )?;
+
+        let error = jail
+            .load::<Config>()
+            .expect_err("`smaple_rate` is not a key of telemetry.sentry");
+        let message = error.to_string();
+        assert!(
+            message.contains("smaple_rate"),
+            "must name the key it refused: {message}"
+        );
+        Ok(())
+    });
+}
+
+/// A prefixed variable that spells no key fails the load too: the root is closed like every
+/// block under it.
+///
+/// `NETCUP_OFFER_BOT_LOG_LEVEL` is what a deployment reaches for when it means
+/// `NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL`, and until now it was read by nothing and reported by
+/// nobody. The loader's own variables are not in this set — `$NETCUP_OFFER_BOT_CONFIG` and
+/// `$NETCUP_OFFER_BOT_SECRETS_DIR` are filtered out of the environment layer before it is
+/// merged, which is what makes closing the root safe and is covered by the TOML tests below.
+#[test]
+fn a_stray_prefixed_variable_fails_the_load() {
+    harness().run(|jail| {
+        jail.env_key(WEBHOOK_KEY, WEB_HOOK);
+        jail.env_key(CHECK_INTERVAL_KEY, 42);
+        jail.env_key("log_level", "debug");
+
+        let error = jail
+            .load::<Config>()
+            .expect_err("`log_level` is not a key of the root");
+        let message = error.to_string();
+        assert!(
+            message.contains("log_level"),
+            "must name the variable it refused: {message}"
+        );
+        Ok(())
+    });
+}
+
 /// A rate the loader cannot parse fails the boot rather than falling back to the default, which
 /// would be a deployment that thinks it is tracing and is not.
 #[test]
