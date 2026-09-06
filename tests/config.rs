@@ -19,10 +19,9 @@
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 
-use netcup_offer_bot::config::{self, Config, SentryLevel};
+use netcup_offer_bot::config::{self, Config, LogLevel, SentryLevel};
 use secrecy::ExposeSecret;
 use terrace_config::testing::Harness;
-use tracing::Level;
 
 const WEB_HOOK: &str = "https://discord.com/api/webhooks/";
 /// Spelled the way Sentry spells one, so a test that stops asserting the value still fails if the
@@ -54,7 +53,7 @@ fn env_supplies_required_keys_and_defaults_fill_the_rest() {
             config.metrics.socket(),
             "127.0.0.1:9184".parse::<SocketAddr>().unwrap()
         );
-        assert_eq!(config.telemetry.log_level, Level::INFO);
+        assert_eq!(config.telemetry.log_level, LogLevel::Info);
         // A deployment that says nothing about Sentry gets no client and no egress. The block is
         // `#[serde(default)]` twice over — once on the field, once on the struct — so a missing
         // section has to materialise rather than fail the boot of a deployment that has never
@@ -86,7 +85,7 @@ fn env_overrides_every_default() {
             config.metrics.socket(),
             "0.0.0.0:9999".parse::<SocketAddr>().unwrap()
         );
-        assert_eq!(config.telemetry.log_level, Level::DEBUG);
+        assert_eq!(config.telemetry.log_level, LogLevel::Debug);
 
         let sentry = &config.telemetry.sentry;
         assert!(sentry.enabled);
@@ -429,21 +428,122 @@ fn an_unparsable_metric_port_fails_the_load() {
     });
 }
 
-/// `FATAL` and `ALL` were documented by the previous system and neither is a `tracing` level,
-/// so the error has to name the value and the accepted set rather than read as "invalid level".
+/// Every spelling the key accepts, and the level each one means.
+///
+/// The accepted set is the variant list of [`LogLevel`] and nothing else, so this is the whole
+/// of it: five lower-case names, one per level.
 #[test]
-fn an_unknown_log_level_names_the_accepted_set() {
-    harness().run(|jail| {
-        jail.env_key(WEBHOOK_KEY, WEB_HOOK);
-        jail.env_key(CHECK_INTERVAL_KEY, 42);
-        jail.env_key("telemetry.log_level", "FATAL");
+fn every_log_level_spelling_loads() {
+    for (spelling, expected) in [
+        ("trace", LogLevel::Trace),
+        ("debug", LogLevel::Debug),
+        ("info", LogLevel::Info),
+        ("warn", LogLevel::Warn),
+        ("error", LogLevel::Error),
+    ] {
+        harness().run(|jail| {
+            jail.env_key(WEBHOOK_KEY, WEB_HOOK);
+            jail.env_key(CHECK_INTERVAL_KEY, 42);
+            jail.env_key("telemetry.log_level", spelling);
 
-        let error = jail
-            .load::<Config>()
-            .expect_err("FATAL is not a tracing level");
-        let message = error.to_string();
-        assert!(message.contains("FATAL"), "must name the value: {message}");
-        assert!(message.contains("TRACE"), "must name the set: {message}");
-        Ok(())
-    });
+            let config: Config = jail.load()?;
+            assert_eq!(config.telemetry.log_level, expected);
+            Ok(())
+        });
+    }
+}
+
+/// The spellings that stopped working, refused rather than folded.
+///
+/// `INFO` and `3` both loaded while the key was parsed by `Level::from_str`, which folds case
+/// and takes `1`–`5` as well. Neither is a spelling any document ever published, and keeping
+/// them would mean maintaining a list of aliases beside the variants — so a deployment carrying
+/// one is stopped at boot and told, rather than moved to a level nobody wrote down.
+#[test]
+fn upper_case_and_numeric_log_levels_are_refused() {
+    for refused in ["INFO", "Info", "3"] {
+        harness().run(|jail| {
+            jail.env_key(WEBHOOK_KEY, WEB_HOOK);
+            jail.env_key(CHECK_INTERVAL_KEY, 42);
+            jail.env_key("telemetry.log_level", refused);
+
+            let error = jail
+                .load::<Config>()
+                .expect_err("only the lower-case spellings load");
+            let message = error.to_string();
+            // Case-folded, because the layer that supplied the value is what decides how the
+            // key is spelled back: the environment layer names it `TELEMETRY.LOG_LEVEL`.
+            assert!(
+                message.to_ascii_lowercase().contains("telemetry.log_level"),
+                "must name the key it refused: {message}"
+            );
+            assert!(
+                message.contains(refused),
+                "must name the value it refused: {message}"
+            );
+            Ok(())
+        });
+    }
+}
+
+/// The documented set and the accepted set, checked against each other.
+///
+/// One derive publishes the variants and another deserialises them, so the two agree by
+/// construction — but only for as long as nothing is added beside them. A `deserialize_with`,
+/// a `FromStr` or a literal spelling list would each split the two apart again, and this is
+/// what notices. Compiled with the generator, which is where a published set exists at all.
+#[test]
+#[cfg(feature = "config-schema")]
+fn every_published_log_level_spelling_loads() {
+    let schema = config::schema().expect("the schema should describe");
+    let key = schema
+        .keys
+        .iter()
+        .find(|key| key.path == "telemetry.log_level")
+        .expect("`telemetry.log_level` should be described");
+
+    assert!(
+        !key.values.is_empty(),
+        "the key publishes no values: {key:?}"
+    );
+
+    for value in &key.values {
+        harness().run(|jail| {
+            jail.env_key(WEBHOOK_KEY, WEB_HOOK);
+            jail.env_key(CHECK_INTERVAL_KEY, 42);
+            jail.env_key("telemetry.log_level", value);
+
+            jail.load::<Config>()?;
+            Ok(())
+        });
+    }
+}
+
+/// A value that is no level at all. `FATAL` and `ALL` were documented by a previous system and
+/// neither is one, so the error has to name the key an operator has to go and fix.
+#[test]
+fn an_unknown_log_level_names_the_key() {
+    for unknown in ["chatty", "FATAL"] {
+        harness().run(|jail| {
+            jail.env_key(WEBHOOK_KEY, WEB_HOOK);
+            jail.env_key(CHECK_INTERVAL_KEY, 42);
+            jail.env_key("telemetry.log_level", unknown);
+
+            let error = jail.load::<Config>().expect_err("neither value is a level");
+            let message = error.to_string();
+            assert!(
+                message.to_ascii_lowercase().contains("telemetry.log_level"),
+                "must name the key it refused: {message}"
+            );
+            assert!(
+                message.contains(unknown),
+                "must name the value it refused: {message}"
+            );
+            assert!(
+                message.contains("`trace`"),
+                "must name the set it accepts: {message}"
+            );
+            Ok(())
+        });
+    }
 }

@@ -69,9 +69,9 @@ check_interval_secs = 0
 # port = 9184
 
 [telemetry]
-# The maximum verbosity that reaches stdout: `TRACE`, `DEBUG`, `INFO`, `WARN` or `ERROR`, in any case.
-# Type: Level
-# log_level = "INFO"
+# The maximum verbosity that reaches stdout: `error`, `warn`, `info`, `debug` or `trace`.
+# Type: LogLevel — one of: error, warn, info, debug, trace
+# log_level = "info"
 
 [telemetry.sentry]
 # Initialise the Sentry client. `false` installs no client, no panic hook and no layer, so every other key here is inert and nothing leaves the process.
@@ -151,6 +151,30 @@ For a single secret, Docker's own convention reaches the same place:
 -e NETCUP_OFFER_BOT_DISCORD__WEBHOOK_URL_FILE="/run/secrets/webhook"
 ```
 
+## `telemetry.log_level`
+
+Five spellings, lower case, one per level: `error`, `warn`, `info`, `debug` and `trace`. The list
+is the variant list of the type the key deserialises into, so the set published above and the set
+the loader accepts are one thing rather than two that have to be kept in agreement.
+
+### The spellings this stopped accepting
+
+`INFO` and `3` used to load. The key was parsed rather than matched, and the parser folded case
+and took `1`–`5` as well — spellings no table, no contract and no page ever published. Both are
+refused now:
+
+| Surface | Before | After |
+| --- | --- | --- |
+| `telemetry.log_level` in `config.toml` | `log_level = "INFO"`, `"Info"`, `"3"` | `log_level = "info"` |
+| `NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL` | `INFO`, `Info`, `3` | `info` |
+
+The two further spellings of the key carry the same value and change with it: a
+`NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL_FILE` file, and
+`telemetry__log_level` in the secrets directory.
+
+A value outside the set fails the boot, naming the key, the value it refused and the five it
+accepts. Loud, in other words, rather than a process that starts at a level nobody chose.
+
 ## `telemetry.sentry`
 
 Off unless a deployment switches it on, and the whole block is inert until it does. A DSN is an
@@ -182,7 +206,7 @@ Four things about it are worth knowing before it is switched on:
 - **The Sentry thresholds do not follow `telemetry.log_level`.** `capture_level` decides what
   becomes an issue and `breadcrumb_level` what is kept as the trail attached to the next one, and
   the layer goes on collecting that trail however quiet stdout has been told to be. Setting
-  `log_level = "ERROR"` does not empty the breadcrumbs on an issue.
+  `log_level = "error"` does not empty the breadcrumbs on an issue.
 
 ### The key this replaced
 

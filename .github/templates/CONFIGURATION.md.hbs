@@ -66,6 +66,12 @@ For a single secret, Docker's own convention reaches the same place:
 -e {{ prefix }}DISCORD{{ nesting_separator }}WEBHOOK_URL{{ indirection_suffix }}="/run/secrets/webhook"
 ```
 
+## `telemetry.log_level`
+
+Five spellings, lower case, one per level: `error`, `warn`, `info`, `debug` and `trace`. The list
+is the variant list of the type the key deserialises into, so the set published above and the set
+the loader accepts are one thing rather than two that have to be kept in agreement.
+
 ## `telemetry.sentry`
 
 Off unless a deployment switches it on, and the whole block is inert until it does. A DSN is an
@@ -97,7 +103,7 @@ Four things about it are worth knowing before it is switched on:
 - **The Sentry thresholds do not follow `telemetry.log_level`.** `capture_level` decides what
   becomes an issue and `breadcrumb_level` what is kept as the trail attached to the next one, and
   the layer goes on collecting that trail however quiet stdout has been told to be. Setting
-  `log_level = "ERROR"` does not empty the breadcrumbs on an issue.
+  `log_level = "error"` does not empty the breadcrumbs on an issue.
 
 ### The key this replaced
 
