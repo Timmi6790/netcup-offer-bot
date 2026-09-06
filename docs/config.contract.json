@@ -58,7 +58,7 @@
         "ty": "u64",
         "values": [],
         "constraint": {
-          "minimum": 0,
+          "minimum": 1,
           "type": "integer"
         },
         "text_constraint": {
@@ -277,6 +277,8 @@
         "ty": "f32",
         "values": [],
         "constraint": {
+          "maximum": 1.0,
+          "minimum": 0.0,
           "type": "number"
         },
         "text_form": "unknown",
@@ -300,6 +302,8 @@
         "ty": "f32",
         "values": [],
         "constraint": {
+          "maximum": 1.0,
+          "minimum": 0.0,
           "type": "number"
         },
         "text_form": "unknown",
@@ -530,7 +534,7 @@
         "properties": {
           "check_interval_secs": {
             "description": "Seconds between two RSS feed checks.\n\nSpelled in seconds rather than as a [`Duration`] so the TOML and the environment layer\nagree on one representation.",
-            "minimum": 0,
+            "minimum": 1,
             "type": "integer"
           }
         },
@@ -627,6 +631,8 @@
               "sample_rate": {
                 "default": 1.0,
                 "description": "Fraction of captured events actually sent, `0.0`–`1.0`.\n\nA blunt volume cap: it drops whole issues rather than repetitions of one, so leave it at\n`1.0` unless a quota forces otherwise.",
+                "maximum": 1.0,
+                "minimum": 0.0,
                 "type": "number"
               },
               "server_name": {
@@ -642,6 +648,8 @@
               "traces_sample_rate": {
                 "default": 0.0,
                 "description": "Fraction of traces that are recorded, `0.0`–`1.0`. `0.0` records none.\n\nThis process starts every trace it has — nothing hands it one — so at `0.0` no spans are\nbuilt at all rather than built and dropped by the sampler. `0.05`–`0.2` is an ordinary\nproduction figure; the previous hard-coded value was `0.2`.",
+                "maximum": 1.0,
+                "minimum": 0.0,
                 "type": "number"
               }
             },

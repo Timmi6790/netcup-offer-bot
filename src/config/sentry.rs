@@ -77,7 +77,10 @@ impl SentryLevel {
 /// crate makes for them. With [`Self::enabled`] set the boot fails without a usable
 /// [`Self::dsn`], instead of installing a reporter that reports nowhere.
 #[derive(Debug, Deserialize)]
-#[serde(default)]
+// As [`super::Config`]: a key nobody declared is a misspelling of one that is here, and this
+// block is the one where that costs the most — `smaple_rate` ignored means the volume cap an
+// operator set against a quota was never applied.
+#[serde(default, deny_unknown_fields)]
 #[cfg_attr(
     feature = "config-schema",
     derive(serde::Serialize, terrace_config::schema::Describe)
@@ -127,12 +130,18 @@ pub struct SentryConfig {
     ///
     /// A blunt volume cap: it drops whole issues rather than repetitions of one, so leave it at
     /// `1.0` unless a quota forces otherwise.
+    // The interval is the one `check_rate` in `src/telemetry/sentry.rs` already refuses the boot
+    // over, inclusive at both ends. Float literals because the field is an `f32`: `min = 0`
+    // would publish the integer `0`, a different number to a consumer reading the keywords.
+    #[cfg_attr(feature = "config-schema", config(range(min = 0.0, max = 1.0)))]
     pub sample_rate: f32,
     /// Fraction of traces that are recorded, `0.0`–`1.0`. `0.0` records none.
     ///
     /// This process starts every trace it has — nothing hands it one — so at `0.0` no spans are
     /// built at all rather than built and dropped by the sampler. `0.05`–`0.2` is an ordinary
     /// production figure; the previous hard-coded value was `0.2`.
+    // As [`Self::sample_rate`]: `check_rate` refuses this one by the same call.
+    #[cfg_attr(feature = "config-schema", config(range(min = 0.0, max = 1.0)))]
     pub traces_sample_rate: f32,
     /// Least severe `tracing` level reported as a Sentry issue: `off`, `error`, `warn`, `info`,
     /// `debug` or `trace`.

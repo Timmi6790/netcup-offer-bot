@@ -66,6 +66,14 @@ const DEFAULT_LOG_LEVEL: Level = Level::INFO;
 // deserialises. The `#[config(...)]` attributes are gated the same way, because a helper
 // attribute without the derive that declares it is a compile error and not a no-op.
 #[derive(Debug, Deserialize)]
+// A block nobody declared is a typo, and a typo that loads is the failure this refuses:
+// `[telemtry]` would otherwise leave the process logging at `INFO` with no Sentry client and
+// nothing said about why. Closing the *root* is safe because the loader keeps its own control
+// variables out of the environment layer — `NETCUP_OFFER_BOT_CONFIG`,
+// `NETCUP_OFFER_BOT_SECRETS_DIR` and every `_FILE` indirection are filtered before the merge, so
+// none of them arrives here as a field this type never declared. Nothing is flattened into this
+// struct, which is the one arrangement `deny_unknown_fields` cannot be combined with.
+#[serde(deny_unknown_fields)]
 #[cfg_attr(
     feature = "config-schema",
     derive(serde::Serialize, terrace_config::schema::Describe)
@@ -141,6 +149,8 @@ pub fn schema() -> Result<terrace_config::schema::Schema, ConfigError> {
 
 /// Where new offers are announced.
 #[derive(Debug, Deserialize)]
+// One key, and a misspelling of it is a boot without a webhook. See [`Config`].
+#[serde(deny_unknown_fields)]
 #[cfg_attr(
     feature = "config-schema",
     derive(serde::Serialize, terrace_config::schema::Describe)
@@ -161,6 +171,9 @@ pub struct DiscordConfig {
 
 /// How often the RSS feeds are polled.
 #[derive(Debug, Deserialize)]
+// As [`Config`]: `check_intervall_secs` is a poll interval nobody set, not a default anybody
+// chose.
+#[serde(deny_unknown_fields)]
 #[cfg_attr(
     feature = "config-schema",
     derive(serde::Serialize, terrace_config::schema::Describe)
@@ -170,6 +183,10 @@ pub struct FeedConfig {
     ///
     /// Spelled in seconds rather than as a [`Duration`] so the TOML and the environment layer
     /// agree on one representation.
+    // `0` is not a fast poll, it is a panic: `main` hands this to `tokio::time::interval`, which
+    // is documented to panic on a zero period. The type's own `minimum: 0` therefore published a
+    // value no build of this process can run on. An integer literal, matching the `u64`.
+    #[cfg_attr(feature = "config-schema", config(range(min = 1)))]
     check_interval_secs: u64,
 }
 
@@ -183,7 +200,8 @@ impl FeedConfig {
 
 /// Where the Prometheus exporter listens.
 #[derive(Debug, Deserialize)]
-#[serde(default)]
+// As [`Config`]: a misspelt key here binds the exporter somewhere nobody is scraping.
+#[serde(default, deny_unknown_fields)]
 #[cfg_attr(
     feature = "config-schema",
     derive(serde::Serialize, terrace_config::schema::Describe)
@@ -214,11 +232,10 @@ impl MetricsConfig {
 
 /// Logging and error reporting.
 #[derive(Debug, Deserialize)]
-#[serde(default)]
-#[cfg_attr(
-    feature = "config-schema",
-    derive(serde::Serialize, terrace_config::schema::Describe)
-)]
+// As [`Config`]. `sentry_dsn` below is *declared* rather than unknown, so it keeps reaching its
+// own error message instead of the generic one this produces.
+#[serde(default, deny_unknown_fields)]
+#[cfg_attr(feature = "config-schema", derive(serde::Serialize))]
 #[allow(
     clippy::manual_non_exhaustive,
     reason = "`sentry_dsn` is a removed key kept to refuse it, not a marker sealing the struct"
@@ -238,8 +255,9 @@ pub struct TelemetryConfig {
     ///
     /// Nested here rather than beside `metrics` because it is a second sink for the same
     /// `tracing` stream `log_level` governs, not a second exporter.
+    // No `config(nested)`: this type describes itself by hand below, and a helper attribute
+    // without the derive that declares it is a compile error.
     #[serde(default)]
-    #[cfg_attr(feature = "config-schema", config(nested))]
     pub sentry: SentryConfig,
     /// The key `telemetry.sentry.dsn` replaced. Supplying it fails the boot.
     ///
@@ -247,12 +265,10 @@ pub struct TelemetryConfig {
     /// upgrade that renamed the key: the old variable would be ignored, `telemetry.sentry.enabled`
     /// would default to `false`, and the first anyone heard of it would be an incident nobody got
     /// an issue for. This field is what turns that into a boot failure naming the replacement.
-    // Not rustdoc: `config(skip)` keeps it out of the contract, the README table and the
-    // generated `config.toml`. A key that exists only to be refused is not part of the
-    // configuration surface a chart is checked against — the error message is where it belongs,
-    // and it reaches the one person who set it.
+    // Not rustdoc: the hand-written `Describe` below leaves it out, as `config(skip)` did. A key
+    // that exists only to be refused is not part of the configuration surface a chart is checked
+    // against — the error message is where it belongs, and it reaches the one person who set it.
     #[serde(skip_serializing, deserialize_with = "refuse_removed_sentry_dsn")]
-    #[cfg_attr(feature = "config-schema", config(skip))]
     sentry_dsn: (),
 }
 
@@ -263,6 +279,48 @@ impl Default for TelemetryConfig {
             sentry: SentryConfig::default(),
             sentry_dsn: (),
         }
+    }
+}
+
+/// The keys of [`TelemetryConfig`], written out because `log_level` has no honest derived form.
+///
+/// `#[derive(Describe)]` refuses a field whose type it cannot describe, and [`Level`] is one:
+/// it is foreign, so the orphan rule puts both `Values` and `Describe` out of reach here, and
+/// the set `deserialize_level` below accepts is not a fixed list of spellings — it hands the
+/// string to [`Level::from_str`], which matches case-insensitively and also takes `1` through
+/// `5`. A `config(values("trace", …))` list would therefore publish a schema refusing `INFO`
+/// and `3`, both of which load, and `config(skip)` would drop a key operators set. What is true
+/// is that the key exists, is optional, and holds a `Level` — which is the row the derive built,
+/// and the row this builds.
+///
+/// The prose below is duplicated from the field's `///` comment because a derive reads those and
+/// a hand-written impl cannot. Change one and change the other.
+#[cfg(feature = "config-schema")]
+impl terrace_config::schema::Describe for TelemetryConfig {
+    fn describe(sink: &mut terrace_config::schema::Sink) {
+        use terrace_config::schema::{Describe, Leaf};
+
+        // First, so the level it closes is this type's own rather than one a field pushed —
+        // which is the order the derive emits `#[serde(deny_unknown_fields)]` in.
+        sink.deny_unknown_fields();
+        sink.leaf(Leaf {
+            name: "log_level",
+            docs: "The maximum verbosity that reaches stdout: `TRACE`, `DEBUG`, `INFO`, `WARN` \
+                   or `ERROR`,\nin any case.\n\nParsed at boot so an unusable value fails the \
+                   load rather than the first log line.\n`DEBUG` and `TRACE` additionally print \
+                   which layer supplied each configuration key.",
+            ty: Some("Level"),
+            values: None,
+            // No interval: a level is not a number here. The text form it is supplied as is a
+            // name, and `1`–`5` are accepted as an alias for those names rather than as a range.
+            bounds: None,
+            aliases: &[],
+            note: None,
+            required: false,
+            secret: false,
+        });
+        sink.nested("sentry", <SentryConfig as Describe>::describe);
+        // `sentry_dsn` is deliberately absent, exactly as `config(skip)` left it.
     }
 }
 
