@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.0](https://github.com/TimSchoenle/netcup-offer-bot/compare/v3.2.0...v3.3.0) (2026-09-06)
+
+
+### Features
+
+* add first party log level type to fully add terrace describe su… ([#536](https://github.com/TimSchoenle/netcup-offer-bot/issues/536)) ([93b2fdd](https://github.com/TimSchoenle/netcup-offer-bot/commit/93b2fdd791042c8d49c4d541b5d563382c81e3ff))
+
 ## [3.2.0](https://github.com/TimSchoenle/netcup-offer-bot/compare/v3.1.0...v3.2.0) (2026-09-06)
 
 

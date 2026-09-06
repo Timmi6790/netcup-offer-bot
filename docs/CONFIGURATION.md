@@ -142,7 +142,7 @@ docker run --rm \
   -e NETCUP_OFFER_BOT_FEED__CHECK_INTERVAL_SECS=900 \
   -v ./webhook:/run/secrets/discord__webhook_url:ro \
   -v netcup-offer-bot-data:/app/data \
-  timmi6790/netcup-offer-bot:v3.2.0
+  timmi6790/netcup-offer-bot:v3.3.0
 ```
 
 For a single secret, Docker's own convention reaches the same place:
@@ -156,24 +156,6 @@ For a single secret, Docker's own convention reaches the same place:
 Five spellings, lower case, one per level: `error`, `warn`, `info`, `debug` and `trace`. The list
 is the variant list of the type the key deserialises into, so the set published above and the set
 the loader accepts are one thing rather than two that have to be kept in agreement.
-
-### The spellings this stopped accepting
-
-`INFO` and `3` used to load. The key was parsed rather than matched, and the parser folded case
-and took `1`–`5` as well — spellings no table, no contract and no page ever published. Both are
-refused now:
-
-| Surface | Before | After |
-| --- | --- | --- |
-| `telemetry.log_level` in `config.toml` | `log_level = "INFO"`, `"Info"`, `"3"` | `log_level = "info"` |
-| `NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL` | `INFO`, `Info`, `3` | `info` |
-
-The two further spellings of the key carry the same value and change with it: a
-`NETCUP_OFFER_BOT_TELEMETRY__LOG_LEVEL_FILE` file, and
-`telemetry__log_level` in the secrets directory.
-
-A value outside the set fails the boot, naming the key, the value it refused and the five it
-accepts. Loud, in other words, rather than a process that starts at a level nobody chose.
 
 ## `telemetry.sentry`
 
@@ -189,7 +171,7 @@ docker run --rm \
   -e NETCUP_OFFER_BOT_TELEMETRY__SENTRY__DSN_FILE="/run/secrets/sentry-dsn" \
   -e NETCUP_OFFER_BOT_TELEMETRY__SENTRY__TRACES_SAMPLE_RATE=0.1 \
   -v netcup-offer-bot-data:/app/data \
-  timmi6790/netcup-offer-bot:v3.2.0
+  timmi6790/netcup-offer-bot:v3.3.0
 ```
 
 Four things about it are worth knowing before it is switched on:
