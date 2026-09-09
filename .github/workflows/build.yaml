@@ -347,20 +347,13 @@ jobs:
           category: trivy-${{ matrix.arch }}
 
       - name: Comment image size on PR
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        uses: TimSchoenle/actions/actions/common/upsert-pr-comment@30bc73a560c7aac65f449b23378b9fd7782f8d39 # tag=actions-common-upsert-pr-comment-v1.1.0
         if: github.event_name == 'pull_request'
-        env:
-          SIZE: ${{ steps.size-check.outputs.size }}
-          ARCH: ${{ matrix.arch }}
         with:
-          script: |
-            const { SIZE, ARCH } = process.env;
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🐳 Docker image size (\`linux/${ARCH}\`): **${SIZE}MB**`
-            });
+          token: ${{ secrets.GITHUB_TOKEN }}
+          identifier: docker-image-size-${{ matrix.arch }}
+          body: |
+            🐳 Docker image size (`linux/${{ matrix.arch }}`): **${{ steps.size-check.outputs.size }}MB**
 
   dependency-review:
     name: Dependency Review
