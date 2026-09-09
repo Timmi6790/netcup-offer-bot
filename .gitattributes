@@ -1,4 +1,48 @@
-# Shell scripts run on Linux runners and inside containers, so their line endings are not the
-# checkout platform's to choose: a CRLF checkout leaves a carriage return on the shebang line
-# and the kernel looks for an interpreter named "bash\r".
+# Default: normalize to LF in the repo, keep the checkout platform's native line ending.
+* text=auto
+
+# Source and config known to be plain text, forced to LF regardless of platform.
+*.rs text eol=lf diff=rust
+*.toml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.hbs text eol=lf
 *.sh text eol=lf
+*.txt text eol=lf
+Dockerfile text eol=lf
+justfile text eol=lf
+LICENSE text eol=lf
+.dockerignore text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+
+# Lockfiles and rendered/generated artifacts: real content, but not hand-written and not part of
+# the crate's language statistics or review diffs.
+Cargo.lock linguist-generated=true text eol=lf
+README.md linguist-generated=true
+CHANGELOG.md linguist-generated=true
+docs/config.contract.json linguist-generated=true
+.release-please-manifest.json linguist-generated=true
+
+# Handlebars templates are the hand-written source behind the generated Markdown above.
+*.hbs linguist-language=Handlebars
+.github/templates/*.hbs linguist-documentation
+
+# Documentation surfaces excluded from the repo's language statistics.
+docs/**/*.md linguist-documentation
+SECURITY.md linguist-documentation
+
+# Not shipped in `git archive` exports (release tarballs): CI, editor and agent tooling only.
+/.github export-ignore
+/.idea export-ignore
+/.junie export-ignore
+/.claude export-ignore
+/.serena export-ignore
+/tests export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/renovate.json export-ignore
+/release-please-config.json export-ignore
+/.release-please-manifest.json export-ignore
